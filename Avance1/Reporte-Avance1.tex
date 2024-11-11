@@ -44,7 +44,7 @@
         Equipo II, TC2008B.302\\
         Tecnologico de Monterrey, \\
         Monterrey 64700, Mexico, \\
-        E-mails: \{A00835759, A0XXXXX, A0XXXXX, A0XXXXX, A0XXXXX\}@tec.mx
+        E-mails: \{A00835759, A01285236, A01281715, A01178085, A00835985\}@tec.mx
     }%
 \thanks{%
     Los abajo firmantes, \{        Imanol Armando González Solís, 
@@ -89,17 +89,21 @@ Multiagentes, Modelado Gráfico, Simulación, Unity, Sistemas Multiagente.
 \end{IEEEkeywords}
 
 \section{Introducción}
-\IEEEPARstart{D}{escriba} la situación específica que su equipo va a resolver, el problema general y la estrategia de solución que van a modelar \cite{weiss1999multiagent}.
+En la actualidad cada vez más compañías tienen la idea de utilizar robots para gestionar de manera automática la entrega y almacenamiento de mercancía. A tal punto de que hoy en día se ve más como una necesidad y no tanto como un lujo, aunque se estima que solamente alrededor del 20\% de los almacenes utilizan sistemas para gestionar y almacenar paquetes. 
 
 
 \subsection{Contexto y Problema}
-Describa el problema de forma específica, incluyendo cualquier investigación relevante sobre soluciones similares y parámetros utilizados en la operación del sistema modelado.
+A lo largo de esta unidad de formación estaremos trabajando con el socio formador Electric80. Nuestro reto consistirá en implementar un sistema logístico en un almacén. En el cual se están utilizando robots para así optimizar la gestión de paquetes en el espacio. Se busca que en este almacén se logren almacenar los productos usando racks selectivos en las posiciones cercanas a los pasillos. Los robots con los que trabaja el almacén, son unos vehículos guiados por láser llamados LGVs. Estos robots cuentan con la capacidad de transportar un pallet de un solo producto a la vez además de que pueden trabajar en colaboración para evitar colisiones o atascos. Nuestra simulación debe tomar en cuenta las limitaciones de hardware y el uso de tres robots LGVs moviendo las plataformas con los productos de manera autónoma con rutas óptimas para la gestión de sistemas multiagentes.
+
 
 \subsection{Objetivos generales}
-Los objetivos de la solución deben ser específicos, medibles, alcanzables, relevantes y delimitados por el tiempo (SMART). A continuación se listan los objetivos del proyecto:
+A continuación se listan los objetivos del proyecto:
 \begin{itemize}
-    \item Objetivo 1
-    \item Objetivo 2
+    \item Definir los agentes, roles, y relaciones en el entorno de simulación, considerando los requisitos de interacción y limitaciones específicas del hardware.
+    \item Implementar una primera versión de la simulación, enfocándonos en la lógica básica de los movimientos de los robots y la gestión de los pallets en el sistema de racks.
+    \item Combinar los módulos del sistema y realizar pruebas para verificar que los agentes interactúan correctamente y cumplen con los requisitos del reto.
+    \item Crear una representación gráfica en 3D de la simulación, donde se pueda observar la interacción de los agentes en tiempo real.
+    
 \end{itemize}
 
 \subsection{Restricciones}
@@ -126,17 +130,63 @@ Esta ecuación es fundamental en los métodos de optimización de políticas, co
 
 \section{Descripción del Sistema Multiagente}
 \subsection{Modelo de los Agentes}
-Explique el comportamiento de los agentes, incluyendo creencias, planes, cooperación y aprendizaje. Incluya un diagrama de actividades y clases, además de un diagrama de estados para cada agente. No olvide incluir gráficos y ecuaciones que faciliten la interpretación del modelo propuesto.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.5\textwidth]{modeloAgentes.png}
+    \caption{Diagrama del modelo de agentes}
+    \label{fig:modeloAgentes}
+\end{figure}
+
+
+\subsubsection*{Robots LGV}
+\begin{itemize}
+    \item Pueden mover pallets en todas las direcciones.
+    \item Detección de obstáculos con sensores.
+    \item Capacidad para decidir rutas óptimas.
+\end{itemize}
+
+\subsubsection*{Sistema de racks}
+\begin{itemize}
+    \item Almacena los pallets en posiciones específicas.
+    \item Capacidad limitada de paquetes por nivel de rack.
+\end{itemize}
+
+\subsubsection*{Sistema de carga de batería}
+\begin{itemize}
+    \item Velocidad de recarga definida.
+    \item Permiten cargar los robots cuando bajan de cierto porcentaje de energía.
+\end{itemize}
+
+\subsubsection*{Cinta transportadora de entrada}
+\begin{itemize}
+    \item Introduce pallets al sistema.
+\end{itemize}
+
+\subsubsection*{Racks de flujo por gravedad}
+\begin{itemize}
+    \item Facilitan el flujo de salida.
+\end{itemize}
 
 \subsection{Modelo del Entorno}
-Describa el entorno de la simulación: observable o parcialmente observable, determinista o estocástico, etc. Mencione cómo se maneja el tiempo y el espacio.
+En la figura 2 se muestra el entorno mapeado utilizando python.
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.5\textwidth]{modeloEntorno.jpeg}
+    \caption{Diagrama del modelo del entorno}
+    \label{fig:modeloEntorno}
+\end{figure}
 
 \subsection{Modelo de la Negociación}
 Describa cómo los agentes interactúan, el tipo de mensajes que intercambian, y si se utilizan subastas, votaciones, etc. Incluya un diagrama de comunicaciones.
 
 \subsection{Modelo de la Interacción}
-Explique cómo el sistema multiagente interactúa con la simulación gráfica, y cómo Unity utiliza la información recibida.
-
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.5\textwidth]{modeloInteraccion.jpeg}
+    \caption{Diagrama de interacción entre los agentes}
+    \label{fig:modeloInteraccion}
+\end{figure}
 \section{Descripción del Modelado Gráfico}
 \subsection{Escena a Modelar}
 Presente un borrador de la escena a modelar, seguido de la versión final en Unity. Compare las expectativas con el resultado real. No olvide incluir gráficos y ecuaciones que faciliten la interpretación del modelo propuesto.
