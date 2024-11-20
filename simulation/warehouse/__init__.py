@@ -1,5 +1,5 @@
 from .model import Maze
 from .server import server
-from .agent import Bot, Box, Outside, Inside, Wall
+from .agent import LGVManager, LGV, Rack, unusableRack, Inside, unusableInside, Outside, unusableOutside, Wall
 
-__all__ = ["Maze", "Bot", "Box", "Outside", "Inside", "Wall", "server"]
+__all__ = ["Maze", "server", "LGVManager", "LGV", "Rack", "unusableRack", "Inside", "unusableInside", "Outside", "unusableOutside", "Wall"]
