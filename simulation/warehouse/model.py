@@ -27,13 +27,13 @@ class Maze(Model):
         self.grid = SingleGrid(N, M, False)
         self.schedule = SimultaneousActivation(self)
 
-        # Place agents in the environment
-        self.place_agents(desc)
-
         # Add LGVManager agent
-        # manager = LGVManager(0, self)
-        # self.grid.place_agent(manager, (0, 0))
-        # self.schedule.add(manager)
+        manager = LGVManager(6, self)
+        self.schedule.add(manager)
+
+        # Place agents in the environment
+        self.place_agents(desc, manager)
+
 
     def step(self):
         self.schedule.step()
@@ -41,7 +41,7 @@ class Maze(Model):
         self.running = not any([a.done for a in self.schedule.agents])
 
 
-    def place_agents(self, desc: list):
+    def place_agents(self, desc: list, manager: LGVManager):
         # poner todos los obstaculos y racks del mapa
         for pos in self.grid.coord_iter():
             _, (x, y) = pos
@@ -58,12 +58,14 @@ class Maze(Model):
             elif desc[y][x] == 'O':
                 outside = Outside(int(f"10{x}{y}"), self)
                 self.grid.place_agent(outside, (x, y))
+                manager.cords.append({"salida": (x, y)})
             elif desc[y][x] == 'U':
                 unusableoutside = unusableOutside(int(f"10{x}{y}"), self)
                 self.grid.place_agent(unusableoutside, (x, y))
             elif desc[y][x] == 'I':
                 inside = Inside(int(f"10{x}{y}"), self)
                 self.grid.place_agent(inside, (x, y))
+                manager.cords.append({"entrada": (x, y)})
             elif desc[y][x] == 'J':
                 unusableinside = unusableInside(int(f"10{x}{y}"), self)
                 self.grid.place_agent(unusableinside, (x, y))
@@ -78,7 +80,8 @@ class Maze(Model):
             x, y = self.random.choice(list(self.grid.empties))
             bot = LGV(int(f"{i}"), self)
             self.grid.place_agent(bot, (x, y))
-            self.schedule.add(bot)
+            #self.schedule.add(bot)
+
 
     @staticmethod
     def from_txt_to_desc(file_path):
