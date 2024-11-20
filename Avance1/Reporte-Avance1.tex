@@ -95,6 +95,10 @@ En la actualidad cada vez más compañías tienen la idea de utilizar robots par
 \subsection{Contexto y Problema}
 A lo largo de esta unidad de formación estaremos trabajando con el socio formador Electric80. Nuestro reto consistirá en implementar un sistema logístico en un almacén. En el cual se están utilizando robots para así optimizar la gestión de paquetes en el espacio. Se busca que en este almacén se logren almacenar los productos usando racks selectivos en las posiciones cercanas a los pasillos. Los robots con los que trabaja el almacén, son unos vehículos guiados por láser llamados LGVs. Estos robots cuentan con la capacidad de transportar un pallet de un solo producto a la vez además de que pueden trabajar en colaboración para evitar colisiones o atascos. Nuestra simulación debe tomar en cuenta las limitaciones de hardware y el uso de tres robots LGVs moviendo las plataformas con los productos de manera autónoma con rutas óptimas para la gestión de sistemas multiagentes.
 
+\subsection{Herramientas de trabajo colaborativo}
+Repositorio de GitHub: https://github.com/imanolgzz/reto-tc2008b.git
+Comunicación: Grupo en Whatsapp, Discord 
+
 
 \subsection{Objetivos generales}
 A continuación se listan los objetivos del proyecto:
@@ -107,10 +111,44 @@ A continuación se listan los objetivos del proyecto:
 \end{itemize}
 
 \subsection{Restricciones}
-Mencione las restricciones que presenta el sistema, como direcciones de calles, tiempos de semáforos, tipos de estacionamiento, entre otros.
+A continuación se listan las restricciones del proyecto:
+\begin{itemize}
+    \item Capacidad de los racks: Los racks solo pueden llegar almacenar tres pallets por nivel, lo cual puede llegar a limitar la capacidad de almacenamiento.
+    \item Velocidad de robots: La velocidad máxima a la que pueden llegar los robots es de 1400 mm/s, lo que restringe directamente la rapidez con las que se pueden llegar a completar las tareas.
+
+    \item Restricción de batería: Si el nivel de batería es más bajo de la mitad, deben dirigirse directamente a los cargadores que estén disponibles lo que causa que se pierda cierta cantidad de tiempo en lo que recuperan el nivel adecuado de batería.
+    \item Flujo de Pallets: El flujo de los pallets esta definido, lo que impune una carga constante de robots ademas de que requiere de una alta eficiencia
+\end{itemize}
 
 \subsection{Resumen de la solución propuesta}
-Describa brevemente la solución propuesta. Esta descripción debe tener más detalles que el resumen.
+En nuestra solución primeramente estaremos implementado una versión de la simulación en la cual nos enfocaremos en la lógica basada en los movimientos de los robots y la gestión de pallets en el sistema de racks. Para esto estaremos programando la lógica de rutas óptimas para los robots LGVs. Por otra parte, estaremos generando una simulación 3D con ayuda de Unity de almacén en la cual se puedan observar la interacción de los agentes involucrados, mostrando los movimientos de los robots al igual que la disposición y acomodo de los pallets. Después de tener el simulador nos enfocaremos más en el código Python que se enfoca en la lógica de todo el proyecto y genera el JSON que se manda al unity para que se pueda implementar la simulación de maner más efectiva.finalmente, estaremos combinando los módulos del sistema con ayuda del GitHub, además de que  realizaremos las pruebas necesarias para verificar que los agentes estén interactuando correctamente y que cumplen con los requisitos del reto. 
+
+\section{Contexto integrantes del equipo}
+Los cinco integrantes del equipo somos estudiantes de quinto semestre en la carrera de Ingeniería en tecnologías computacionales en el Tecnológico de Monterrey. 
+
+\subsection{Fortalezas}
+Nicolás: Habilidades en modelado 3D
+Fernando: Conocimiento en optimización y logística
+Carlos: Implementación de algoritmos y controlar interacción de agentes.
+Iván: Experiencia en resolución de problemas
+Imanol: Análisis e interpretación de datos generados por simulaciones.
+
+\subsection{Áreas de oportunidad}
+Nicolás: Integracion de sistemas multiagentes
+Fernando:Análisis e interpretación de datos y resultados
+Carlos: Manejo avanzado de gráficos y simulaciones en 3D.
+Iván: Planificación y priorización de tareas
+Imanol: Comunicación en entornos colaborativos
+
+\subsection{Expectativas}
+Nicolás:  Implementar simulaciones de gráficas 3D para la visualización de agentes.
+Fernando: Desarrollar habilidades de optimización en las rutas de trabajo.
+Carlos: Aprender sobre el modelado y la simulación de procesos logísticos con python.
+Iván: Mejorar mis habilidades  de análisis de resultados en de simulaciones.
+Imanol: Aplicar estrategias de programación para la interacción de agentes.
+
+Grupal: Esperamos poder aprender a coordinar y optimizar de manera eficiente sistemas multiagentes mediante las simulaciones gráficas en 3D. Desarrollando así habilidades en logística automatizada y el análisis del rendimiento dentro de entornos colaborativos.
+
 
 \section{Fundamentos}
 
