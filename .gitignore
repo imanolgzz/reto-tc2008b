@@ -1,0 +1,2 @@
+# ignore all the trash files from python and git
+*__pycache__/
