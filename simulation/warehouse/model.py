@@ -20,14 +20,8 @@ class Maze(Model):
         
         print(f"Creating a {M}x{N} maze")
 
-        # Get the number of bots in the environment from the description
-        num_bots = 0
-        for i in range(M):
-            for j in range(N):
-                if desc[i][j].isdigit():
-                    num_bots += 1
-        self.num_bots = num_bots
-        self.bots = {}
+        # Get the number of bots in the environment from model_params
+        self.num_bots = kwargs.get('lgvs', 0)
 
         # Create the grid and schedule
         self.grid = SingleGrid(N, M, False)
@@ -36,6 +30,11 @@ class Maze(Model):
         # Place agents in the environment
         self.place_agents(desc)
 
+        # Add LGVManager agent
+        # manager = LGVManager(0, self)
+        # self.grid.place_agent(manager, (0, 0))
+        # self.schedule.add(manager)
+
     def step(self):
         self.schedule.step()
 
@@ -43,6 +42,7 @@ class Maze(Model):
 
 
     def place_agents(self, desc: list):
+        # poner todos los obstaculos y racks del mapa
         for pos in self.grid.coord_iter():
             _, (x, y) = pos
             char = desc[y][x]
@@ -71,15 +71,14 @@ class Maze(Model):
                 wall = Wall(int(f"10{x}{y}"), self)
                 self.grid.place_agent(wall, (x, y))
             else:
-                try:
-                    bot_num = int(desc[y][x])
-                    bot = LGV(int(f"{bot_num}"), self)
-                    self.grid.place_agent(bot, (x, y))
-                    self.schedule.add(bot)
-                    self.bots[bot_num] = bot
+                pass
 
-                except ValueError:
-                    pass
+        # poner los bots de manera random
+        for i in range(self.num_bots):
+            x, y = self.random.choice(list(self.grid.empties))
+            bot = LGV(int(f"{i}"), self)
+            self.grid.place_agent(bot, (x, y))
+            self.schedule.add(bot)
 
     @staticmethod
     def from_txt_to_desc(file_path):
