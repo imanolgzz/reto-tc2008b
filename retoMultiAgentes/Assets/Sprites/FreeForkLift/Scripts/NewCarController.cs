@@ -59,7 +59,7 @@ internal enum SpeedType
         public bool Skidding { get; private set; }
         public float BrakeInput { get; private set; }
         public float CurrentSteerAngle{ get { return m_SteerAngle; }}
-        public float CurrentSpeed{ get { return m_Rigidbody.velocity.magnitude*2.23693629f; }}
+        public float CurrentSpeed{ get { return m_Rigidbody.linearVelocity.magnitude*2.23693629f; }}
         public float MaxSpeed{get { return m_Topspeed; }}
         public float Revs { get; private set; }
         public float AccelInput { get; private set; }
@@ -217,20 +217,20 @@ internal enum SpeedType
 
         private void CapSpeed()
         {
-            float speed = m_Rigidbody.velocity.magnitude;
+            float speed = m_Rigidbody.linearVelocity.magnitude;
             switch (m_SpeedType)
             {
                 case SpeedType.MPH:
 
                     speed *= 2.23693629f;
                     if (speed > m_Topspeed)
-                        m_Rigidbody.velocity = (m_Topspeed/2.23693629f) * m_Rigidbody.velocity.normalized;
+                        m_Rigidbody.linearVelocity = (m_Topspeed/2.23693629f) * m_Rigidbody.linearVelocity.normalized;
                     break;
 
                 case SpeedType.KPH:
                     speed *= 3.6f;
                     if (speed > m_Topspeed)
-                        m_Rigidbody.velocity = (m_Topspeed/3.6f) * m_Rigidbody.velocity.normalized;
+                        m_Rigidbody.linearVelocity = (m_Topspeed/3.6f) * m_Rigidbody.linearVelocity.normalized;
                     break;
             }
         }
@@ -264,7 +264,7 @@ internal enum SpeedType
 
             for (int i = 0; i < colWheels; i++)
             {
-                if (CurrentSpeed > 5 && Vector3.Angle(transform.forward, m_Rigidbody.velocity) < 50f)
+                if (CurrentSpeed > 5 && Vector3.Angle(transform.forward, m_Rigidbody.linearVelocity) < 50f)
                 {
                     m_WheelColliders[i].brakeTorque = m_BrakeTorque*footbrake;
                 }
@@ -292,7 +292,7 @@ internal enum SpeedType
             {
                 var turnadjust = (transform.eulerAngles.y - m_OldRotation) * m_SteerHelper;
                 Quaternion velRotation = Quaternion.AngleAxis(turnadjust, Vector3.up);
-                m_Rigidbody.velocity = velRotation * m_Rigidbody.velocity;
+                m_Rigidbody.linearVelocity = velRotation * m_Rigidbody.linearVelocity;
             }
             m_OldRotation = transform.eulerAngles.y;
         }
@@ -302,7 +302,7 @@ internal enum SpeedType
         private void AddDownForce()
         {
             m_WheelColliders[0].attachedRigidbody.AddForce(-transform.up*m_Downforce*
-                                                         m_WheelColliders[0].attachedRigidbody.velocity.magnitude);
+                                                         m_WheelColliders[0].attachedRigidbody.linearVelocity.magnitude);
         }
 
 
