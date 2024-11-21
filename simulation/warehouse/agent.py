@@ -1,4 +1,5 @@
 from mesa.agent import Agent
+from collections import defaultdict
 import queue
 import os
 
@@ -16,6 +17,34 @@ class LGVManager(Agent):
 
     def assign_tasks(self, task):
         self.tasks.put(task)
+
+    def check_collision(self, next_pos):
+        indices = defaultdict(list)
+
+        # Rellenar el diccionario con los índices de cada coordenada
+        for index, coord in enumerate(next_pos):
+            indices[coord].append(index)
+
+        # Filtrar las coordenadas que tienen más de un índice (repetidas)
+        duplicates = {coord: idx_list for coord, idx_list in indices.items() if len(idx_list) > 1} # boleana
+
+        for coord, idx_list in duplicates.items():
+            print(f"Coordenada {coord} repetida en índices {idx_list}")
+        
+        # Seleccionar coordenadas únicas y sus índices
+        selected_coords = []
+        selected_indices = []
+        seen_coords = set()
+
+        for index, coord in enumerate(next_pos):
+            if coord not in seen_coords:
+                selected_coords.append(coord)
+                selected_indices.append(index)
+                seen_coords.add(coord)
+
+        return selected_coords, selected_indices
+
+
 
     def step(self):
         if self.current_step % 120 == 0:
@@ -66,41 +95,15 @@ class LGVManager(Agent):
             # comparar todas las next pos para verificar que no haya colisiones (solo funciona si las coordenadas son tuplas)
             if len(set(next_posArr)) != len(next_posArr):
                 # hay colisiones
-                """
-                ejemplo reconocer tuplas repetidas y obtener indices de repetidos:
-                
-                coordinates = [(1, 2), (3, 4), (1, 2)]
-
-                # Crear un diccionario para rastrear índices de cada coordenada
-                from collections import defaultdict
-
-                indices = defaultdict(list)
-
-                # Rellenar el diccionario con los índices de cada coordenada
-                for index, coord in enumerate(coordinates):
-                    indices[coord].append(index)
-
-                # Filtrar las coordenadas que tienen más de un índice (repetidas)
-                duplicates = {coord: idx_list for coord, idx_list in indices.items() if len(idx_list) > 1} # boleana
-                
-                """
-                pass
+                # coords regresa las coordenadas que si pasan el filtro, indexes regresa el indice de los bots que si pueden hacer step
+                coords, indexes = self.check_collision(next_posArr) # indexes ya dice el indice de los bots que hacen el step dentro de 
+                for i in range(len(self.bots)):
+                    if i in indexes:
+                        self.bots[i].step()
             else:
                 # bots hacen su step normal
                 for bot in self.bots:
                     bot.step()
-
-            # si alguno va a chocar, posponer el step de uno y que el otro siga
-
-            # else 
-            pass
-
-
-
-        
-
-            
-
 
         self.current_step += 1
         

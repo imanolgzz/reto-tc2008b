@@ -79,6 +79,7 @@ class Maze(Model):
         for i in range(self.num_bots):
             x, y = self.random.choice(list(self.grid.empties))
             bot = LGV(int(f"{i}"), self)
+            manager.add_bot(bot.unique_id, (x, y))
             self.grid.place_agent(bot, (x, y))
             #self.schedule.add(bot)
 
