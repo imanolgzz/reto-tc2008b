@@ -1,5 +1,5 @@
 from mesa.agent import Agent
-from collections import defaultdict
+from collections import defaultdict, deque
 import queue
 import heapq
 import os
@@ -14,25 +14,33 @@ class LGVManager(Agent):
         self.racks = []
         self.time = time*60
         self.done = False
+        #print(f"[DEBUG] LGVManager inicializado con tiempo límite: {self.time} segundos")
 
     def add_bot(self, bot):
         self.bots.append(bot)
+        #print(f"[DEBUG] Bot añadido: ID={bot.unique_id}, posición inicial={bot.pos}")
         
     def add_rack(self, id, pos):
         self.racks.append((id, pos, 0))
+        #print(f"[DEBUG] Rack añadido: ID={id}, posición={pos}")
 
     def assign_tasks(self, task):
         self.tasks.put(task)
-        
+        #print(f"[DEBUG] Tarea asignada: {task}")
     
     def calc_distance(pos1, pos2):
-        return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
+        distance = abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
+        print(f"[DEBUG] Calculando distancia entre {pos1} y {pos2}: {distance}")
+        return distance
     
     def closest_rack(self, bot_id):
+        print(f"[DEBUG] Buscando rack más cercano para bot ID={bot_id}")
         bot_pos = self.bots.get(bot_id)
         eligible_racks = [rack for rack in self.racks if rack[2] < 3]
+        print(f"[DEBUG] Racks elegibles: {eligible_racks}")
         
         if not eligible_racks:
+            print("[DEBUG] No hay racks elegibles disponibles")
             return None
         
         distances = [
@@ -44,46 +52,45 @@ class LGVManager(Agent):
         ]
         
         closest_rack = min(distances, key=lambda d: d["distance"])
+        print(f"[DEBUG] Rack más cercano encontrado: {closest_rack}")
         return closest_rack["rack"]
     
-    # Seleccionar el bot más cercano a un rack con pallets
     def find_nearest_bot_to_pallet(self, available_bots):
-        # Filtrar racks con pallets disponibles
+        print(f"[DEBUG] Buscando bot más cercano a un rack con pallets disponibles")
         racks_with_pallets = [rack for rack in self.racks if rack[2] > 0]
+        print(f"[DEBUG] Racks con pallets: {racks_with_pallets}")
 
         if not racks_with_pallets:
-            return None  # No hay racks con pallets disponibles
+            print("[DEBUG] No hay racks con pallets disponibles")
+            return None
 
         closest_bot = None
         closest_rack = None
         min_distance = float('inf')
 
         for bot in available_bots:
-            bot_pos = bot.get_position()  # Suponiendo que cada bot tiene un método para obtener su posición
+            bot_pos = bot.get_position()
             for rack in racks_with_pallets:
-                distance = self.calc_distance(bot_pos, rack[1])  # rack[1] es la posición del rack
+                distance = self.calc_distance(bot_pos, rack[1])
                 if distance < min_distance:
                     min_distance = distance
                     closest_bot = bot
                     closest_rack = rack
 
+        print(f"[DEBUG] Bot más cercano: {closest_bot}, Rack más cercano: {closest_rack}")
         return closest_bot, closest_rack
 
-
     def check_collision(self, next_pos):
+        print(f"[DEBUG] Comprobando colisiones para posiciones: {next_pos}")
         indices = defaultdict(list)
 
-        # Rellenar el diccionario con los índices de cada coordenada
         for index, coord in enumerate(next_pos):
             indices[coord].append(index)
 
-        # Filtrar las coordenadas que tienen más de un índice (repetidas)
-        duplicates = {coord: idx_list for coord, idx_list in indices.items() if len(idx_list) > 1} # boleana
-
-        for coord, idx_list in duplicates.items():
-            print(f"Coordenada {coord} repetida en índices {idx_list}")
+        duplicates = {coord: idx_list for coord, idx_list in indices.items() if len(idx_list) > 1}
+        if duplicates:
+            print(f"[DEBUG] Colisiones detectadas: {duplicates}")
         
-        # Seleccionar coordenadas únicas y sus índices
         selected_coords = []
         selected_indices = []
         seen_coords = set()
@@ -94,26 +101,32 @@ class LGVManager(Agent):
                 selected_indices.append(index)
                 seen_coords.add(coord)
 
+        print(f"[DEBUG] Coordenadas seleccionadas: {selected_coords}, Índices: {selected_indices}")
         return selected_coords, selected_indices
 
     def eucladian_distance(self, bots, dest):
+        print(f"[DEBUG] Calculando distancia euclidiana a destino {dest}")
         bot_min_index = None
         min_distance = float('inf')
-        for i, bot in enumerate(bots):  # Enumerar para obtener índices
-            bot_pos = bot.pos  # Asegúrate de que `bot.pos` sea una tupla (x, y)
+        for i, bot in enumerate(bots):
+            bot_pos = bot.pos
             distance = ((bot_pos[0] - dest[0])**2 + (bot_pos[1] - dest[1])**2)**0.5
+            print(f"[DEBUG] Bot ID={bot.unique_id}, Posición={bot_pos}, Distancia={distance}")
             if distance < min_distance:
                 min_distance = distance
-                bot_min_index = i  # Guarda el índice del bot más cercano
+                bot_min_index = i
+        print(f"[DEBUG] Bot más cercano: índice={bot_min_index}")
         return bot_min_index
 
-
     def step(self):
+        print(f"\n[STEP {self.current_step}] Iniciando paso del LGVManager")
         if self.current_step >= self.time: # terminar simulación
             self.done = True
+            print("[DEBUG] Tiempo límite alcanzado. Finalizando simulación.")
             return
 
         if self.current_step % 120 == 0:
+            print("[DEBUG] Generando nuevas tareas...")
             # add entrada-salida
             for i in range(10):
                 self.assign_tasks({"task": "entrada-salida"})
@@ -124,69 +137,91 @@ class LGVManager(Agent):
             for i in range(25):
                 self.assign_tasks({"task": "rack-rack"})
 
+        print(f"[DEBUG] Total de tareas en cola: {self.tasks.qsize()}")
+
         # checar si hay bots sin tasks
         available_bots = []
         for bot in self.bots:
             if bot.hasTask == False:
                 available_bots.append(bot)
 
-        # asignar tasks a los bots en caso de que haya almenos uno desocupado
-        if not self.tasks.empty() and len(available_bots) > 0: # verificar que haya tasks para asignar
-            # checar cuantos bots hay disponibles
-            if len(available_bots) > 1:
-                # mas de un bot disponible, hay que seleccionr el más adecuado
+        print(f"[DEBUG] Bots disponibles: {[bot.unique_id for bot in available_bots]}")
+
+        # Asignar tareas a los bots disponibles
+        if not self.tasks.empty() and available_bots:
+            print(f"[DEBUG] Asignando tareas a {len(available_bots)} bots disponibles...")
+            if len(available_bots) > 1:  # Más de un bot disponible
                 for i in range(len(available_bots)):
-                    if self.tasks.queue[0]["task"] == "entrada-salida" :
-                        # todo seleccionar el bot más cercano a la entrada
+                    current_task = self.tasks.queue[0]  # Consultar la tarea en la parte frontal de la cola
+                    print(f"[DEBUG] Evaluando tarea: {current_task}")
+                    if current_task["task"] == "entrada-salida":
                         best = self.eucladian_distance(available_bots, self.cords["entrada"])
                         bot = available_bots[best]
-                        bot.asign_task(target = [self.cords["entrada"], self.cords["salida"]])
-                    elif self.tasks.queue[0]["task"] == "entrada-rack":
-                        # todo seleccionar el bot más cercano a la entrada
+                        bot.asign_task(target=[self.cords["entrada"], self.cords["salida"]])
+                        print(f"[DEBUG] Bot {bot.unique_id} asignado a entrada-salida")
+                        available_bots.remove(bot)
+                    elif current_task["task"] == "entrada-rack":
                         best = self.eucladian_distance(available_bots, self.cords["entrada"])
                         bot = available_bots[best]
-                        # todo nico buscar el rack más cercano con disponibilidad de storage
                         rack = self.closest_rack(bot.unique_id)
-                        pass
+                        if rack:
+                            print(f"[DEBUG] Bot {bot.unique_id} asignado a entrada-rack con rack ID={rack[0]}")
+                            available_bots.remove(bot)
+                        else:
+                            print("[DEBUG] No hay racks disponibles para entrada-rack.")
                     else:
-                        # todo seleccionar el bot más cercano a un rack con palletes
                         closest_bot, closest_rack = self.find_nearest_bot_to_pallet(available_bots)
-                        pass
-            else:
-                # todo solo hay un bot disponible, asignarle la tarea
+                        if closest_bot and closest_rack:
+                            print(f"[DEBUG] Bot {closest_bot.unique_id} asignado a rack-rack con rack ID={closest_rack[0]}")
+                            available_bots.remove(bot)
+
+            else:  # Solo un bot disponible
                 bot = available_bots[0]
-                if self.tasks.queue[0]["task"] == "entrada-salida" :
-                    bot.asign_task(target = [self.cords["entrada"], self.cords["salida"]])
-                elif self.tasks.queue[0]["task"] == "entrada-rack":
-                    # todo nico buscar el rack más cercano con disponibilidad de storage
+                current_task = self.tasks.queue[0]
+                print(f"[DEBUG] Evaluando tarea: {current_task}")
+                if current_task["task"] == "entrada-salida":
+                    bot.asign_task(target=[self.cords["entrada"], self.cords["salida"]])
+                    print(f"[DEBUG] Bot {bot.unique_id} asignado a entrada-salida")
+                    available_bots.remove(bot)
+                elif current_task["task"] == "entrada-rack":
                     rack = self.closest_rack(bot.unique_id)
-                    pass
+                    if rack:
+                        print(f"[DEBUG] Bot {bot.unique_id} asignado a entrada-rack con rack ID={rack[0]}")
+                        available_bots.remove(bot)
+                    else:
+                        print("[DEBUG] No hay racks disponibles para entrada-rack.")
                 else:
-                    # todo seleccionar el bot más cercano a un rack con palletes
                     closest_bot, closest_rack = self.find_nearest_bot_to_pallet(bot)
-                    pass
-        # bots ocupados
+                    if closest_bot and closest_rack:
+                        print(f"[DEBUG] Bot {closest_bot.unique_id} asignado a rack-rack con rack ID={closest_rack[0]}")
+                        available_bots.remove(bot)
+        # Manejar bots ocupados o en movimiento
         else:
-            # checar las posiciones que tendrían los bots el siguiente step
-            next_posArr = [] # [(x,y), (x,y)]
+            print("[DEBUG] Verificando próximas posiciones de los bots...")
+            next_posArr = []  # [(x, y), (x, y)]
             for bot in self.bots:
                 next_pos = bot.getNextPos()
+                print(f"[DEBUG] Bot {bot.unique_id} próxima posición: {next_pos}")
                 if next_pos:
                     next_posArr.append(next_pos)
-            # comparar todas las next pos para verificar que no haya colisiones (solo funciona si las coordenadas son tuplas)
+            print(f"[DEBUG] Próximas posiciones: {next_posArr}")
+
+            # Comprobar colisiones
             if len(set(next_posArr)) != len(next_posArr):
-                # hay colisiones
-                # coords regresa las coordenadas que si pasan el filtro, indexes regresa el indice de los bots que si pueden hacer step
-                coords, indexes = self.check_collision(next_posArr) # indexes ya dice el indice de los bots que hacen el step dentro de 
-                for i in range(len(self.bots)):
-                    if i in indexes:
-                        self.bots[i].step()
+                print("[DEBUG] Colisiones detectadas. Resolviendo...")
+                coords, indexes = self.check_collision(next_posArr)
+                for i in indexes:
+                    print(f"[DEBUG] Bot {self.bots[i].unique_id} avanzando a {coords[i]}")
+                    self.bots[i].step()
             else:
-                # bots hacen su step normal
                 for bot in self.bots:
                     bot.step()
+                    print(f"[DEBUG] Bot {bot.unique_id} avanzó a {bot.pos}")
 
         self.current_step += 1
+        print(f"[STEP {self.current_step}] Finalizando paso del LGVManager\n")
+
+
         
 
         
@@ -198,7 +233,7 @@ class LGV(Agent):
         self.hasPallete = False
         self.pos = pos
         self.path = queue.Queue() # path = [(x,y), (x,y)] -> cada step es cuadro
-        self.target = queue.Queue() # target = [(x,y), (x,y)]
+        self.target = [] # target = [(x,y), (x,y)]
         self.map = self.read_map()
 
     def astar(self, start, end):
@@ -224,6 +259,7 @@ class LGV(Agent):
                     path.append(current)
                     current = came_from[current]
                 path.reverse()
+                print(f"[DEBUG] Camino encontrado: {path}")
                 return queue.Queue(path)
 
             neighbors = [(current[0] + dx, current[1] + dy) for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]]
@@ -235,7 +271,7 @@ class LGV(Agent):
                         g_score[neighbor] = tentative_g_score
                         f_score[neighbor] = tentative_g_score + heuristic(neighbor, end)
                         heapq.heappush(open_set, (f_score[neighbor], neighbor))
-
+        print("[DEBUG] No se encontró camino")
         return queue.Queue()  # Si no hay camino
 
 
@@ -244,24 +280,31 @@ class LGV(Agent):
 
     def asign_task(self, target):
         for cord in target:
-            self.target.put(cord)
-        self.path = self.astar(self.pos, self.target.get()) # el primer target
+            self.target.append(cord)
+        print(f"[BOT] Bot ID={self.unique_id} asignado a tarea con target {self.target}")
+        self.path = self.astar(self.pos, self.target[0]) # usa el primer target 
+        print(f"[BOT] Bot ID={self.unique_id} con path {list(self.path.queue)}")
         self.hasTask = True
 
     def step(self):
         if self.hasTask:
+            print(f"[BOT] Step del bot ID={self.unique_id} con tarea asignada")
+
             # si tiene una tarea asignada, moverse a la siguiente posición
             if not self.path.empty(): # aun le quedan pasos por dar
                 self.pos = self.path.get()
-                if self.pos == self.target and len(self.target) == 1: # ya es su ultimo target
-                    self.hasTask = False
-                    self.hasPallete = False
-                elif self.pos == self.target and len(self.target) > 1: # aun tiene otro target
-                    self.target.popleft()
+                print(f"[BOT] Bot ID={self.unique_id} avanzando a {self.pos}")
+                if self.pos == self.target[0] and len(self.target) > 1: # aun tiene otro target
+                    self.target.pop(0)
                     self.path = self.astar(self.pos, self.target[0])
                     self.hasPallete = True # en el primer target siempre recoge un pallete
+                elif self.pos == self.target[0] and len(self.target) == 1: # ya es su ultimo target
+                    self.hasTask = False
+                    self.hasPallete = False
+                    self.target = []
 
         else:
+            print(f"[BOT] Step del bot ID={self.unique_id} sin tarea")
             # si no tiene una tarea asignada, esperar
             pass
 
