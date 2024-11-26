@@ -260,7 +260,10 @@ class LGV(Agent):
                     current = came_from[current]
                 path.reverse()
                 print(f"[DEBUG] Camino encontrado: {path}")
-                return queue.Queue(path)
+                queue_path = queue.Queue()
+                for step in path:
+                    queue_path.put(step)  # Rellena correctamente la cola
+                return queue_path
 
             neighbors = [(current[0] + dx, current[1] + dy) for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]]
             for neighbor in neighbors:
