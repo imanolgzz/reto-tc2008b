@@ -5,13 +5,15 @@ import heapq
 import os
 
 class LGVManager(Agent):
-    def __init__(self, unique_id, model):
+    def __init__(self, unique_id, model, time):
         super().__init__(unique_id, model)
         self.bots = []
         self.cords = {}
         self.tasks = queue.Queue()
         self.current_step = 0
         self.racks = []
+        self.time = time*60
+        self.done = False
 
     def add_bot(self, bot):
         self.bots.append(bot)
@@ -95,18 +97,22 @@ class LGVManager(Agent):
         return selected_coords, selected_indices
 
     def eucladian_distance(self, bots, dest):
-        bot_min = None
+        bot_min_index = None
         min_distance = float('inf')
-        for bot in bots:
-            # Accede a las coordenadas del bot desde su atributo `pos`
+        for i, bot in enumerate(bots):  # Enumerar para obtener índices
             bot_pos = bot.pos  # Asegúrate de que `bot.pos` sea una tupla (x, y)
             distance = ((bot_pos[0] - dest[0])**2 + (bot_pos[1] - dest[1])**2)**0.5
             if distance < min_distance:
                 min_distance = distance
-                bot_min = bot
-        return bot_min
+                bot_min_index = i  # Guarda el índice del bot más cercano
+        return bot_min_index
+
 
     def step(self):
+        if self.current_step >= self.time: # terminar simulación
+            self.done = True
+            return
+
         if self.current_step % 120 == 0:
             # add entrada-salida
             for i in range(10):
@@ -242,8 +248,8 @@ class LGV(Agent):
 
     def asign_task(self, target):
         for cord in target:
-            self.target.append(cord)
-        self.path = self.astar(self.pos, self.target[0]) # el primer target
+            self.target.put(cord)
+        self.path = self.astar(self.pos, self.target.get()) # el primer target
         self.hasTask = True
 
     def step(self):
