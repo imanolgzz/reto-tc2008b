@@ -22,6 +22,8 @@ class Maze(Model):
 
         # Get the number of bots in the environment from model_params
         self.num_bots = kwargs.get('lgvs', 0)
+
+        time = kwargs.get('time', 0) # tiempo en minutos
         
         self.racksid = 1
 
@@ -30,7 +32,7 @@ class Maze(Model):
         self.schedule = SimultaneousActivation(self)
 
         # Add LGVManager agent
-        manager = LGVManager(6, self)
+        manager = LGVManager(6, self, time)
         self.schedule.add(manager)
 
         # Place agents in the environment
@@ -39,8 +41,7 @@ class Maze(Model):
 
     def step(self):
         self.schedule.step()
-
-        self.running = not any([a.done for a in self.schedule.agents])
+        self.running = not all(a.done for a in self.schedule.agents)
 
 
     def place_agents(self, desc: list, manager: LGVManager):
