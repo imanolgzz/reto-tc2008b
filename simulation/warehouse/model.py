@@ -22,6 +22,8 @@ class Maze(Model):
 
         # Get the number of bots in the environment from model_params
         self.num_bots = kwargs.get('lgvs', 0)
+        
+        self.racksid = 1
 
         # Create the grid and schedule
         self.grid = SingleGrid(N, M, False)
@@ -55,6 +57,8 @@ class Maze(Model):
                 else:
                     rack = Rack(int(f"1000{x}{y}"), self)
                     self.grid.place_agent(rack, (x, y))
+                    manager.add_rack(self.racksid, (x, y))
+                    self.racksid += 1
             elif desc[y][x] == 'O':
                 outside = Outside(int(f"10{x}{y}"), self)
                 self.grid.place_agent(outside, (x, y))
