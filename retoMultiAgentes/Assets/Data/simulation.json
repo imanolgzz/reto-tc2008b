@@ -1,0 +1,131 @@
+[
+  {
+    "step": 1,
+    "agents": [
+      {
+        "id": 1,
+        "position": { "x": 10, "z": 20 },
+        "has_pallet": true,
+        "is_picking": false,
+        "is_dropping": false
+      },
+      {
+        "id": 2,
+        "position": { "x": 15, "z": 25 },
+        "has_pallet": false,
+        "is_picking": true,
+        "is_dropping": false
+      },
+      {
+        "id": 3,
+        "position": { "x": 5, "z": 10 },
+        "has_pallet": false,
+        "is_picking": false,
+        "is_dropping": true
+      }
+    ],
+    "racks": [
+      {
+        "id": "rack_1",
+        "position": { "x": 30, "z": 50 },
+        "pallets": 3
+      },
+      {
+        "id": "rack_2",
+        "position": { "x": 35, "z": 55 },
+        "pallets": 1
+      },
+      {
+        "id": "rack_3",
+        "position": { "x": 40, "z": 60 },
+        "pallets": 2
+      }
+    ]
+  },
+  {
+    "step": 2,
+    "agents": [
+      {
+        "id": 1,
+        "position": { "x": 12, "z": 22 },
+        "has_pallet": true,
+        "is_picking": false,
+        "is_dropping": false
+      },
+      {
+        "id": 2,
+        "position": { "x": 15, "z": 25 },
+        "has_pallet": true,
+        "is_picking": false,
+        "is_dropping": true
+      },
+      {
+        "id": 3,
+        "position": { "x": 7, "z": 12 },
+        "has_pallet": false,
+        "is_picking": true,
+        "is_dropping": false
+      }
+    ],
+    "racks": [
+      {
+        "id": "rack_1",
+        "position": { "x": 30, "z": 50 },
+        "pallets": 2
+      },
+      {
+        "id": "rack_2",
+        "position": { "x": 35, "z": 55 },
+        "pallets": 1
+      },
+      {
+        "id": "rack_3",
+        "position": { "x": 40, "z": 60 },
+        "pallets": 3
+      }
+    ]
+  },
+  {
+    "step": 3,
+    "agents": [
+      {
+        "id": 1,
+        "position": { "x": 14, "z": 22 },
+        "has_pallet": true,
+        "is_picking": false,
+        "is_dropping": false
+      },
+      {
+        "id": 2,
+        "position": { "x": 17, "z": 25 },
+        "has_pallet": true,
+        "is_picking": false,
+        "is_dropping": true
+      },
+      {
+        "id": 3,
+        "position": { "x": 10, "z": 12 },
+        "has_pallet": false,
+        "is_picking": true,
+        "is_dropping": false
+      }
+    ],
+    "racks": [
+      {
+        "id": "rack_1",
+        "position": { "x": 30, "z": 50 },
+        "pallets": 2
+      },
+      {
+        "id": "rack_2",
+        "position": { "x": 35, "z": 55 },
+        "pallets": 1
+      },
+      {
+        "id": "rack_3",
+        "position": { "x": 40, "z": 60 },
+        "pallets": 3
+      }
+    ]
+  }
+]
