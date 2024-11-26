@@ -141,10 +141,12 @@ class LGVManager(Agent):
                         bot = available_bots[best]
                         # todo nico buscar el rack más cercano con disponibilidad de storage
                         rack = self.closest_rack(bot.unique_id)
+                        bot.asign_task(target = [self.cords["entrada"], rack[1]])
                         pass
                     else:
                         # todo seleccionar el bot más cercano a un rack con palletes
                         closest_bot, closest_rack = self.find_nearest_bot_to_pallet(available_bots)
+                        closest_bot.asign_task(target = [closest_rack[1], self.cords["salida"]])
                         pass
             else:
                 # todo solo hay un bot disponible, asignarle la tarea
@@ -154,10 +156,12 @@ class LGVManager(Agent):
                 elif self.tasks.queue[0]["task"] == "entrada-rack":
                     # todo nico buscar el rack más cercano con disponibilidad de storage
                     rack = self.closest_rack(bot.unique_id)
+                    bot.asign_task(target = [self.cords["entrada"], rack[1]])
                     pass
                 else:
                     # todo seleccionar el bot más cercano a un rack con palletes
                     closest_bot, closest_rack = self.find_nearest_bot_to_pallet(bot)
+                    bot.asign_task(target = [closest_rack[1], self.cords["salida"]])
                     pass
         # bots ocupados
         else:
@@ -197,7 +201,7 @@ class LGV(Agent):
 
     def astar(self, start, end):
         # Convertir el mapa actual en una representación binaria
-        grid = [[1 if char in {'M', 'S', 'U', 'J'} else 0 for char in row] for row in self.map]
+        grid = [[1 if char in {'M', 'S', 'U', 'J','O','I'} else 0 for char in row] for row in self.map]
 
         # Implementar A*
         def heuristic(a, b):
