@@ -1,6 +1,7 @@
 from mesa.agent import Agent
 from collections import defaultdict
 import queue
+import heapq
 import os
 
 class LGVManager(Agent):
@@ -44,7 +45,15 @@ class LGVManager(Agent):
 
         return selected_coords, selected_indices
 
-
+    def eucladian_distance(self, bots, dest):
+        bot_min = None
+        min_distance = float('inf')
+        for i, bot in enumerate(bots):
+            distance = ((bot[0] - dest[0])**2 + (bot[1] - dest[1])**2)**0.5
+            if distance < min_distance:
+                min_distance = distance
+                bot_min = i
+        return bot_min
 
     def step(self):
         if self.current_step % 120 == 0:
@@ -71,19 +80,30 @@ class LGVManager(Agent):
                 # mas de un bot disponible, hay que seleccionr el más adecuado
                 for i in range(len(available_bots)):
                     if self.tasks.queue[0]["task"] == "entrada-salida" :
-                        # seleccionar el bot más cercano a la entrada
-                        pass
+                        # todo seleccionar el bot más cercano a la entrada
+                        best = self.eucladian_distance(available_bots, self.cords["entrada"])
+                        bot = available_bots[best]
+                        bot.asign_task(target = [self.cords["entrada"], self.cords["salida"]])
                     elif self.tasks.queue[0]["task"] == "entrada-rack":
-                        # seleccionar el bot más cercano a la entrada
-
-                        # buscar el rack más cercano con disponibilidad de storage
+                        # todo seleccionar el bot más cercano a la entrada
+                        best = self.eucladian_distance(available_bots, self.cords["entrada"])
+                        bot = available_bots[best]
+                        # todo nico buscar el rack más cercano con disponibilidad de storage
                         pass
                     else:
-                        # seleccionar el bot más cercano a un rack con palletes
+                        # todo seleccionar el bot más cercano a un rack con palletes
                         pass
             else:
-                # solo hay un bot disponible
-                pass
+                # todo solo hay un bot disponible, asignarle la tarea
+                bot = available_bots[0]
+                if self.tasks.queue[0]["task"] == "entrada-salida" :
+                    bot.asign_task(target = [self.cords["entrada"], self.cords["salida"]])
+                elif self.tasks.queue[0]["task"] == "entrada-rack":
+                    # todo nico buscar el rack más cercano con disponibilidad de storage
+                    pass
+                else:
+                    # todo seleccionar el bot más cercano a un rack con palletes
+                    pass
         # bots ocupados
         else:
             # checar las posiciones que tendrían los bots el siguiente step
@@ -120,20 +140,66 @@ class LGV(Agent):
         self.target = queue.Queue() # target = [(x,y), (x,y)]
         self.map = self.read_map()
 
-    def astar(self, start, end):  # pos, target
-        pass
+    def astar(self, start, end):
+        # Convertir el mapa actual en una representación binaria
+        grid = [[1 if char in {'M', 'S', 'U', 'J'} else 0 for char in row] for row in self.map]
+
+        # Implementar A*
+        def heuristic(a, b):
+            return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+        open_set = []
+        heapq.heappush(open_set, (0, start))
+        came_from = {}
+        g_score = {start: 0}
+        f_score = {start: heuristic(start, end)}
+
+        while open_set:
+            _, current = heapq.heappop(open_set)
+
+            if current == end:
+                path = []
+                while current in came_from:
+                    path.append(current)
+                    current = came_from[current]
+                path.reverse()
+                return queue.Queue(path)
+
+            neighbors = [(current[0] + dx, current[1] + dy) for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]]
+            for neighbor in neighbors:
+                if (0 <= neighbor[0] < len(grid) and 0 <= neighbor[1] < len(grid[0]) and grid[neighbor[0]][neighbor[1]] == 0):
+                    tentative_g_score = g_score[current] + 1
+                    if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
+                        came_from[neighbor] = current
+                        g_score[neighbor] = tentative_g_score
+                        f_score[neighbor] = tentative_g_score + heuristic(neighbor, end)
+                        heapq.heappush(open_set, (f_score[neighbor], neighbor))
+
+        return queue.Queue()  # Si no hay camino
+
 
     def getNextPos(self):
         return self.path.queue[0] if not self.path.empty() else None
 
+    def asign_task(self, target):
+        for cord in target:
+            self.target.append(cord)
+        self.path = self.astar(self.pos, self.target[0]) # el primer target
+        self.hasTask = True
+
     def step(self):
         if self.hasTask:
             # si tiene una tarea asignada, moverse a la siguiente posición
-            if not self.path.empty():
+            if not self.path.empty(): # aun le quedan pasos por dar
                 self.pos = self.path.get()
-                if self.pos == self.target:
+                if self.pos == self.target and len(self.target) == 1: # ya es su ultimo target
                     self.hasTask = False
                     self.hasPallete = False
+                elif self.pos == self.target and len(self.target) > 1: # aun tiene otro target
+                    self.target.popleft()
+                    self.path = self.astar(self.pos, self.target[0])
+                    self.hasPallete = True # en el primer target siempre recoge un pallete
+
         else:
             # si no tiene una tarea asignada, esperar
             pass
