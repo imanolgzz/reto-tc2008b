@@ -17,7 +17,7 @@ class LGVManager(Agent):
         self.bots.append(bot)
         
     def add_rack(self, id, pos):
-        self.racks.append(id, pos, 0)
+        self.racks.append((id, pos, 0))
 
     def assign_tasks(self, task):
         self.tasks.put(task)
