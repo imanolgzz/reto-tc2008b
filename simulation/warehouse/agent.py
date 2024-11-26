@@ -259,7 +259,7 @@ class LGV(Agent):
                     path.append(current)
                     current = came_from[current]
                 path.reverse()
-                print(f"[DEBUG] Camino encontrado: {path}")
+                #print(f"[DEBUG] Camino encontrado: {path}")
                 queue_path = queue.Queue()
                 for step in path:
                     queue_path.put(step)  # Rellena correctamente la cola
@@ -291,7 +291,7 @@ class LGV(Agent):
 
     def step(self):
         if self.hasTask:
-            print(f"[BOT] Step del bot ID={self.unique_id} con tarea asignada")
+            print(f"[BOT] Step del bot ID={self.unique_id} con tarea asignada y posición {self.pos}")
 
             # si tiene una tarea asignada, moverse a la siguiente posición
             if not self.path.empty(): # aun le quedan pasos por dar
