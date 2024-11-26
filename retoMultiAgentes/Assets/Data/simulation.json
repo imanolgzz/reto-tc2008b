@@ -27,18 +27,13 @@
     "racks": [
       {
         "id": "rack_1",
-        "position": { "x": 30, "z": 50 },
+        "position": { "x": 30, "z": 4 },
         "pallets": 3
       },
       {
         "id": "rack_2",
-        "position": { "x": 35, "z": 55 },
+        "position": { "x": 31, "z": 4 },
         "pallets": 1
-      },
-      {
-        "id": "rack_3",
-        "position": { "x": 40, "z": 60 },
-        "pallets": 2
       }
     ]
   },
@@ -70,18 +65,13 @@
     "racks": [
       {
         "id": "rack_1",
-        "position": { "x": 30, "z": 50 },
+        "position": { "x": 30, "z": 4 },
         "pallets": 2
       },
       {
         "id": "rack_2",
-        "position": { "x": 35, "z": 55 },
-        "pallets": 1
-      },
-      {
-        "id": "rack_3",
-        "position": { "x": 40, "z": 60 },
-        "pallets": 3
+        "position": { "x": 31, "z": 4 },
+        "pallets": 2
       }
     ]
   },
@@ -113,17 +103,12 @@
     "racks": [
       {
         "id": "rack_1",
-        "position": { "x": 30, "z": 50 },
-        "pallets": 2
-      },
-      {
-        "id": "rack_2",
-        "position": { "x": 35, "z": 55 },
+        "position": { "x": 30, "z": 4 },
         "pallets": 1
       },
       {
-        "id": "rack_3",
-        "position": { "x": 40, "z": 60 },
+        "id": "rack_2",
+        "position": { "x": 31, "z": 4 },
         "pallets": 3
       }
     ]
