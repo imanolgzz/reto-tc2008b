@@ -7,14 +7,14 @@ import os
 class LGVManager(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
-        self.bots = {}
+        self.bots = []
         self.cords = []
         self.tasks = queue.Queue()
         self.current_step = 0
         self.racks = []
 
-    def add_bot(self, id, pos):
-        self.bots[id] = pos
+    def add_bot(self, bot):
+        self.bots.append(bot)
         
     def add_rack(self, id, pos):
         self.racks.append(id, pos, 0)
