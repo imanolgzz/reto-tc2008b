@@ -8,7 +8,7 @@ class LGVManager(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
         self.bots = []
-        self.cords = []
+        self.cords = {}
         self.tasks = queue.Queue()
         self.current_step = 0
         self.racks = []
@@ -97,11 +97,13 @@ class LGVManager(Agent):
     def eucladian_distance(self, bots, dest):
         bot_min = None
         min_distance = float('inf')
-        for i, bot in enumerate(bots):
-            distance = ((bot[0] - dest[0])**2 + (bot[1] - dest[1])**2)**0.5
+        for bot in bots:
+            # Accede a las coordenadas del bot desde su atributo `pos`
+            bot_pos = bot.pos  # Asegúrate de que `bot.pos` sea una tupla (x, y)
+            distance = ((bot_pos[0] - dest[0])**2 + (bot_pos[1] - dest[1])**2)**0.5
             if distance < min_distance:
                 min_distance = distance
-                bot_min = i
+                bot_min = bot
         return bot_min
 
     def step(self):

@@ -62,14 +62,14 @@ class Maze(Model):
             elif desc[y][x] == 'O':
                 outside = Outside(int(f"10{x}{y}"), self)
                 self.grid.place_agent(outside, (x, y))
-                manager.cords.append({"salida": (x, y)})
+                manager.cords["salida"] = (x, y)
             elif desc[y][x] == 'U':
                 unusableoutside = unusableOutside(int(f"10{x}{y}"), self)
                 self.grid.place_agent(unusableoutside, (x, y))
             elif desc[y][x] == 'I':
                 inside = Inside(int(f"10{x}{y}"), self)
                 self.grid.place_agent(inside, (x, y))
-                manager.cords.append({"entrada": (x, y)})
+                manager.cords["entrada"] = (x, y)
             elif desc[y][x] == 'J':
                 unusableinside = unusableInside(int(f"10{x}{y}"), self)
                 self.grid.place_agent(unusableinside, (x, y))
