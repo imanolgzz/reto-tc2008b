@@ -11,13 +11,38 @@ class LGVManager(Agent):
         self.cords = []
         self.tasks = queue.Queue()
         self.current_step = 0
+        self.racks = []
 
     def add_bot(self, id, pos):
         self.bots[id] = pos
-
+        
+    def add_rack(self, id, pos):
+        self.racks.append(id, pos, 0)
 
     def assign_tasks(self, task):
         self.tasks.put(task)
+        
+    
+    def calc_distance(pos1, pos2):
+        return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
+    
+    def closest_rack(self, bot_id):
+        bot_pos = self.bots.get(bot_id)
+        eligible_racks = [rack for rack in self.racks if rack[2] < 3]
+        
+        if not eligible_racks:
+            return None
+        
+        distances = [
+            {
+                "rack": rack,
+                "distance": self.calc_distance(bot_pos, rack[1])
+            }
+            for rack in eligible_racks
+        ]
+        
+        closest_rack = min(distances, key=lambda d: d["distance"])
+        return closest_rack["rack"]
 
     def check_collision(self, next_pos):
         indices = defaultdict(list)
