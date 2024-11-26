@@ -43,6 +43,30 @@ class LGVManager(Agent):
         
         closest_rack = min(distances, key=lambda d: d["distance"])
         return closest_rack["rack"]
+    
+    # Seleccionar el bot más cercano a un rack con pallets
+    def find_nearest_bot_to_pallet(self, available_bots):
+        # Filtrar racks con pallets disponibles
+        racks_with_pallets = [rack for rack in self.racks if rack[2] > 0]
+
+        if not racks_with_pallets:
+            return None  # No hay racks con pallets disponibles
+
+        closest_bot = None
+        closest_rack = None
+        min_distance = float('inf')
+
+        for bot in available_bots:
+            bot_pos = bot.get_position()  # Suponiendo que cada bot tiene un método para obtener su posición
+            for rack in racks_with_pallets:
+                distance = self.calc_distance(bot_pos, rack[1])  # rack[1] es la posición del rack
+                if distance < min_distance:
+                    min_distance = distance
+                    closest_bot = bot
+                    closest_rack = rack
+
+        return closest_bot, closest_rack
+
 
     def check_collision(self, next_pos):
         indices = defaultdict(list)
@@ -114,9 +138,11 @@ class LGVManager(Agent):
                         best = self.eucladian_distance(available_bots, self.cords["entrada"])
                         bot = available_bots[best]
                         # todo nico buscar el rack más cercano con disponibilidad de storage
+                        rack = self.closest_rack(bot.unique_id)
                         pass
                     else:
                         # todo seleccionar el bot más cercano a un rack con palletes
+                        closest_bot, closest_rack = self.find_nearest_bot_to_pallet(available_bots)
                         pass
             else:
                 # todo solo hay un bot disponible, asignarle la tarea
@@ -125,9 +151,11 @@ class LGVManager(Agent):
                     bot.asign_task(target = [self.cords["entrada"], self.cords["salida"]])
                 elif self.tasks.queue[0]["task"] == "entrada-rack":
                     # todo nico buscar el rack más cercano con disponibilidad de storage
+                    rack = self.closest_rack(bot.unique_id)
                     pass
                 else:
                     # todo seleccionar el bot más cercano a un rack con palletes
+                    closest_bot, closest_rack = self.find_nearest_bot_to_pallet(bot)
                     pass
         # bots ocupados
         else:
