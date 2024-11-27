@@ -4,6 +4,7 @@ import queue
 import heapq
 import os
 import random
+import json
 
 class LGVManager(Agent):
     def __init__(self, unique_id, model, time):
@@ -16,6 +17,38 @@ class LGVManager(Agent):
         self.time = time*60
         self.done = False
         #print(f"[DEBUG] LGVManager inicializado con tiempo límite: {self.time} segundos")
+
+    def generate_json(self):
+        steps_data = []
+        for step in range(self.current_step + 1):
+            agents_data = [
+                {
+                    "id": bot.unique_id,
+                    "position": { "x": bot.pos[0], "z": bot.pos[1] },
+                    "has_pallet": bot.hasPallete,
+                    "is_picking": bool(bot.path and bot.target and bot.pos == bot.target[0]),
+                    "is_dropping": bool(bot.path and bot.target and bot.pos == bot.target[-1] and not bot.hasPallete)
+                }
+                for bot in self.bots
+            ]
+            racks_data = [
+                {
+                    #"id": rack[0],
+                    "position": { "x": rack[1][0], "z": rack[1][1] },
+                    "pallets": rack[2]
+                }
+                for rack in self.racks
+            ]
+            steps_data.append({
+                "step": step,
+                "agents": agents_data,
+                "racks": racks_data
+            })
+        
+        output_path = "simulation_results.json"
+        with open(output_path, 'w') as json_file:
+            json.dump(steps_data, json_file, indent=2)
+        print(f"[DEBUG] JSON generado en {output_path}")
 
     def add_bot(self, bot):
         self.bots.append(bot)
@@ -150,6 +183,7 @@ class LGVManager(Agent):
     def step(self):
         print(f"\n[STEP {self.current_step}] Iniciando paso del LGVManager")
         if self.current_step*0.1 >= self.time: # terminar simulación
+            self.generate_json()
             self.done = True
             print("[DEBUG] Tiempo límite alcanzado. Finalizando simulación.")
             return
