@@ -67,7 +67,13 @@ class LGVManager(Agent):
         ]
         
         closest_rack = min(distances, key=lambda d: d["distance"])
-        print(f"[DEBUG] Rack más cercano encontrado: {closest_rack}")
+        print(f"[DEBUG] Rack más cercano encontrado: {closest_rack['rack']}, Pallets actuales: {closest_rack['rack'][2]}")
+        # Actualizar el rack directamente en self.racks
+        for i, rack in enumerate(self.racks):
+            if rack[0] == closest_rack["rack"][0]:
+                self.racks[i] = (rack[0], rack[1], rack[2] + 1)  # Incrementar pallets
+                print(f"[DEBUG] Rack actualizado: {self.racks[i]}")
+                break
         return closest_rack["rack"]
     
     def find_nearest_bot_to_pallet(self, available_bots):
@@ -84,7 +90,7 @@ class LGVManager(Agent):
         min_distance = float('inf')
 
         for bot in available_bots:
-            bot_pos = bot.get_position()
+            bot_pos = bot.pos
             for rack in racks_with_pallets:
                 distance = self.calc_distance(bot_pos, rack[1])
                 if distance < min_distance:
@@ -92,8 +98,16 @@ class LGVManager(Agent):
                     closest_bot = bot
                     closest_rack = rack
 
-        print(f"[DEBUG] Bot más cercano: {closest_bot}, Rack más cercano: {closest_rack}")
-        return closest_bot, closest_rack
+        print(f"[DEBUG] Bot más cercano: Bot {closest_bot.unique_id}, Rack más cercano: {closest_rack}")
+            # Actualizar el rack seleccionado en self.racks
+        if closest_rack:
+            for i, rack in enumerate(self.racks):
+                if rack[0] == closest_rack[0]:
+                    self.racks[i] = (rack[0], rack[1], rack[2] - 1)  # Restar 1 pallet
+                    print(f"[DEBUG] Rack actualizado tras asignación: {self.racks[i]}")
+                    break
+
+        return closest_bot.unique_id, closest_rack
 
     def check_collision(self, next_pos):
         print(f"[DEBUG] Comprobando colisiones para posiciones: {next_pos}")
@@ -183,10 +197,11 @@ class LGVManager(Agent):
                         result = self.find_nearest_bot_to_pallet(available_bots)
                         
                         if result:
-                            closest_bot, closest_rack = result
-                            print(f"[DEBUG] Bot {closest_bot.unique_id} asignado a rack-rack con rack ID={closest_rack[0]}")
-                            closest_bot.asign_task(target=[closest_bot.pos, closest_rack[1]])
-                            available_bots.remove(closest_bot)
+                            closest_bot, closest_rack = result # closest_bot es el ID del bot o el indice del bot en la lista de bots
+                            print(f"[DEBUG] Bot {closest_bot} asignado a rack-salida con rack ID={closest_rack[0]}")
+                            bot = self.bots[closest_bot]
+                            bot.asign_task(target=[closest_rack[1], self.cords["salida"]])
+                            available_bots.remove(bot)
                             self.tasks.get()  # Eliminar la tarea de la cola
                         else:
                             print("[DEBUG] No hay racks disponibles con pallets.")
@@ -212,14 +227,15 @@ class LGVManager(Agent):
                         self.tasks.get()  # Eliminar la tarea de la cola
                     else:
                         print("[DEBUG] No hay racks disponibles para entrada-rack.")
-                else:
+                else: # todo checar
                     result = self.find_nearest_bot_to_pallet(available_bots)
                         
                     if result:
-                        closest_bot, closest_rack = result
-                        print(f"[DEBUG] Bot {closest_bot.unique_id} asignado a rack-rack con rack ID={closest_rack[0]}")
-                        closest_bot.asign_task(target=[closest_bot.pos, closest_rack[1]])
-                        available_bots.remove(closest_bot)
+                        closest_bot, closest_rack = result # closest_bot es el ID del bot o el indice del bot en la lista de bots
+                        print(f"[DEBUG] Bot {closest_bot} asignado a rack-salida con rack ID={closest_rack[0]}")
+                        bot = self.bots[closest_bot]
+                        bot.asign_task(target=[closest_rack[1], self.cords["salida"]])
+                        available_bots.remove(bot)
                         self.tasks.get()  # Eliminar la tarea de la cola
                     else:
                         print("[DEBUG] No hay racks disponibles con pallets.")
@@ -264,6 +280,7 @@ class LGV(Agent):
         self.path = queue.Queue() # path = [(x,y), (x,y)] -> cada step es cuadro
         self.target = [] # target = [(x,y), (x,y)]
         self.map = self.read_map()
+        self.grid = [[1 if char in {'M', 'S', 'U', 'J', 'I', 'O'} else 0 for char in row] for row in self.map]
 
     def astar(self, start, end):
         """
@@ -291,16 +308,8 @@ class LGV(Agent):
             return queue.Queue()
 
         # Convertir el mapa en binario
-        grid = [[1 if char in {'M', 'S', 'U', 'J', 'I', 'O'} else 0 for char in row] for row in self.map]
-
-        # Escribir el grid invertido en un archivo
-        root_path = os.path.dirname(os.path.abspath(__file__))
-        grid_file = os.path.join(root_path, "grid.txt")
-        with open(grid_file, "w") as file:
-            for row in grid:
-                file.write(" ".join(map(str, row)) + "\n")
-        print(f"[DEBUG] Grid escrito en {grid_file}")
-
+        grid = self.grid
+        
         # Heurística de Manhattan
         def heuristic(a, b):
             return abs(a[0] - b[0]) + abs(a[1] - b[1])
@@ -369,11 +378,19 @@ class LGV(Agent):
                 self.model.grid.remove_agent(self)
                 self.pos = next_pos
                 print(f"[BOT] Bot ID={self.unique_id} avanzando a {self.pos}")
-                if self.pos == self.target[0] and len(self.target) > 1: # aun tiene otro target
+                if self.path.empty() and len(self.target) > 1: # llegó al destino y aun tiene otro target
+                    # checar si llegó a un rack
+                    #if self.pos not in self.cords["entrada"] and self.pos not in self.cords["salida"]:
+
+
+
+
                     self.target.pop(0)
                     self.path = self.astar(self.pos, self.target[0])
                     self.hasPallete = True # en el primer target siempre recoge un pallete
-                elif self.pos == self.target[0] and len(self.target) == 1: # ya es su ultimo target
+                elif self.path.empty() and len(self.target) == 1: # ya es su ultimo target
+                    # checar si llegó a un rack
+                    
                     self.hasTask = False
                     self.hasPallete = False
                     self.target = []
