@@ -56,7 +56,7 @@ def model_params():
 
     params["lgvs"] = mesa.visualization.Slider(
         name="lgvs",
-        min_value=1,
+        min_value=3,
         max_value=5,
         value=3,
         step=1,

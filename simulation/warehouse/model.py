@@ -14,6 +14,9 @@ class Maze(Model):
         desc_file = "maze.txt"        
         root_path = os.path.dirname(os.path.abspath(__file__))
         desc = self.from_txt_to_desc(root_path + "/" + desc_file)
+        with open(root_path + "/outputModel.txt", 'w') as output_file:
+            for line in desc:
+                output_file.write(f"{line}\n")
         
         # Get the dimensions of the environment
         M, N = len(desc), len(desc[0])
@@ -45,54 +48,69 @@ class Maze(Model):
 
 
     def place_agents(self, desc: list, manager: LGVManager):
-        # poner todos los obstaculos y racks del mapa
-        for pos in self.grid.coord_iter():
-            _, (x, y) = pos
-            char = desc[y][x]
-            
-            if char == 'S':
-                # if rack is blocked by racks in all 4 directions, it is unusable
-                if ((desc[y-1][x] in {'S', 'M'}) and (desc[y+1][x] in {'S', 'M'}) and (desc[y][x-1] in {'S', 'M'}) and (desc[y][x+1] in {'S', 'M'})):
-                    unusablerack = unusableRack(int(f"1000{x}{y}"), self)
-                    self.grid.place_agent(unusablerack, (x, y))
-                else:
-                    rack = Rack(int(f"1000{x}{y}"), self)
-                    self.grid.place_agent(rack, (x, y))
-                    manager.add_rack(self.racksid, (x, y))
-                    self.racksid += 1
-            elif desc[y][x] == 'O':
-                outside = Outside(int(f"10{x}{y}"), self)
-                self.grid.place_agent(outside, (x, y))
-                manager.cords["salida"] = (x, y)
-            elif desc[y][x] == 'U':
-                unusableoutside = unusableOutside(int(f"10{x}{y}"), self)
-                self.grid.place_agent(unusableoutside, (x, y))
-            elif desc[y][x] == 'I':
-                inside = Inside(int(f"10{x}{y}"), self)
-                self.grid.place_agent(inside, (x, y))
-                manager.cords["entrada"] = (x, y)
-            elif desc[y][x] == 'J':
-                unusableinside = unusableInside(int(f"10{x}{y}"), self)
-                self.grid.place_agent(unusableinside, (x, y))
-            elif desc[y][x] == 'M':
-                wall = Wall(int(f"10{x}{y}"), self)
-                self.grid.place_agent(wall, (x, y))
-            else:
-                pass
+        """
+        Coloca los agentes en el grid basado en la descripción del laberinto.
+        Ajusta el eje Y para que el archivo se grafique tal como aparece.
+        """
+        # Recorre las filas (desc), ajustando el eje Y para que sea invertido
+        for y, row in enumerate(desc):
+            for x, char in enumerate(row):
+                # Calcula la posición invertida en el eje Y
+                inverted_y = len(desc) - y - 1
 
-        # poner los bots de manera random
+                if char == 'S':
+                    if self.is_blocked(desc, x, y):
+                        unusablerack = unusableRack(int(f"1000{x}{y}"), self)
+                        self.grid.place_agent(unusablerack, (x, inverted_y))
+                    else:
+                        rack = Rack(int(f"1000{x}{y}"), self)
+                        self.grid.place_agent(rack, (x, inverted_y))
+                        manager.add_rack(self.racksid, (x, inverted_y))
+                        self.racksid += 1
+                elif char == 'O':
+                    outside = Outside(int(f"10{x}{y}"), self)
+                    self.grid.place_agent(outside, (x, inverted_y))
+                    manager.cords["salida"] = (x, inverted_y-1)
+                elif char == 'U':
+                    unusableoutside = unusableOutside(int(f"10{x}{y}"), self)
+                    self.grid.place_agent(unusableoutside, (x, inverted_y))
+                elif char == 'I':
+                    inside = Inside(int(f"10{x}{y}"), self)
+                    self.grid.place_agent(inside, (x, inverted_y))
+                    manager.cords["entrada"] = (x+1, inverted_y)
+                elif char == 'J':
+                    unusableinside = unusableInside(int(f"10{x}{y}"), self)
+                    self.grid.place_agent(unusableinside, (x, inverted_y))
+                elif char == 'M':
+                    wall = Wall(int(f"10{x}{y}"), self)
+                    self.grid.place_agent(wall, (x, inverted_y))
+                    # poner los bots de manera random
         for i in range(self.num_bots):
             x, y = self.random.choice(list(self.grid.empties))
             bot = LGV(int(f"{i}"), self, (x, y))
             manager.add_bot(bot)
             self.grid.place_agent(bot, (x, y))
 
+    @staticmethod
+    def is_blocked(desc, x, y):
+        """
+        Verifica si un rack está bloqueado en las 4 direcciones.
+        """
+        try:
+            return (
+                desc[y - 1][x] in {'S', 'M'} and
+                desc[y + 1][x] in {'S', 'M'} and
+                desc[y][x - 1] in {'S', 'M'} and
+                desc[y][x + 1] in {'S', 'M'}
+            )
+        except IndexError:
+            return False
 
     @staticmethod
     def from_txt_to_desc(file_path):
         try:
             with open(file_path, 'r') as file:
-                desc = [line.strip() for line in file.readlines()][::-1]
+                desc = [line.strip() for line in file.readlines()]
             return desc
         except Exception as e:
             print(f"Error reading the file: {e}")
