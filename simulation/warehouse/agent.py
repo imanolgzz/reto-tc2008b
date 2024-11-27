@@ -227,25 +227,97 @@ class LGVManager(Agent):
         # Manejar bots ocupados o en movimiento
         else:
             print("[DEBUG] Verificando próximas posiciones de los bots...")
-            next_posArr = []  # [(x, y), (x, y)]
+            next_posArr = []
             for bot in self.bots:
                 next_pos = bot.getNextPos()
                 print(f"[DEBUG] Bot {bot.unique_id} próxima posición: {next_pos}")
                 if next_pos:
                     next_posArr.append(next_pos)
             print(f"[DEBUG] Próximas posiciones: {next_posArr}")
+            
+            botToStop = None
+            otherBot = None
 
-            # Comprobar colisiones
-            if len(set(next_posArr)) != len(next_posArr):
-                print("[DEBUG] Colisiones detectadas. Resolviendo...")
-                coords, indexes = self.check_collision(next_posArr)
-                for i in indexes:
-                    print(f"[DEBUG] Bot {self.bots[i].unique_id} avanzando a {coords[i]}")
-                    self.bots[i].step()
+            duplicates = {pos for pos in next_posArr if next_posArr.count(pos) > 1}
+
+            if not duplicates:
+                # check if currPos of any is the same as nextPos of another
+                for i, bot in enumerate(self.bots):
+                    for j, bBot in enumerate(self.bots):
+                        if i != j and bot.pos == bBot.getNextPos():
+                            #bot.recalcAstar([bot.pos, bBot.pos])
+                            # find direction of collision for bot
+                            # if bot is moving up and other bot is moving down, check if left or right is free for bot to make path like left, up, right and continue path
+                            # if bot is moving left and other bot is moving right, check if up or down is free for bot to make path like up, left, down and continue path
+                            # if bot is moving down and other bot is moving up, check if left or right is free for bot to make path like left, down, right and continue path
+                            # if bot is moving right and other bot is moving left, check if up or down is free for bot to make path like up, right, down and continue path
+                            bot_direction = (bot.getNextPos()[0] - bot.pos[0], bot.getNextPos()[1] - bot.pos[1])
+                            bBot_direction = (bBot.getNextPos()[0] - bBot.pos[0], bBot.getNextPos()[1] - bBot.pos[1])
+                            
+                            # objectpos checking racks and coords
+                            objectPos = set()
+                            for rack in self.racks:
+                                objectPos.add(rack[1])
+                            objectPos.add(self.cords["entrada"])
+                            objectPos.add(self.cords["salida"])
+                            
+                            if (bot_direction == (0, -1) and bBot_direction == (0, 1)) or (bot_direction == (0, 1) and bBot_direction == (0, -1)):  # vertical crash
+                                # check if left or right is free checking objectPos
+                                if (bot.pos[0] - 1, bot.pos[1]) not in objectPos:
+                                    alternative_paths = [(bot.pos[0] - 1, bot.pos[1]), (bot.pos[0] + 1, bot.pos[1])] # left -> right
+                                if (bot.pos[0] + 1, bot.pos[1]) not in objectPos:
+                                    alternative_paths = [(bot.pos[0] + 1, bot.pos[1]), (bot.pos[0] - 1, bot.pos[1])] # right -> left
+                                
+                            elif (bot_direction == (-1, 0) and bBot_direction == (1, 0)) or (bot_direction == (1, 0) and bBot_direction == (-1, 0)):  # horizontal crash
+                                # check if up or down is free checking objectPos
+                                if (bot.pos[0], bot.pos[1] - 1) not in objectPos:
+                                    alternative_paths = [(bot.pos[0], bot.pos[1] - 1), (bot.pos[0], bot.pos[1] + 1)] # up -> down
+                                if (bot.pos[0], bot.pos[1] + 1) not in objectPos:
+                                    alternative_paths = [(bot.pos[0], bot.pos[1] + 1), (bot.pos[0], bot.pos[1] - 1)] # down -> up
+                            
+                            newPath = queue.Queue()
+                            newPath.put(alternative_paths[0])
+                            newPath.put(alternative_paths[1])
+                            while(bot.path.qsize() > 0):
+                                newPath.put(bot.path.get())
+                            bot.path = newPath
+                            print(f"[DEBUG] Bot {bot.unique_id} rerouted")
+                            
+                            #otherBot = bBot
+                            break
             else:
-                for bot in self.bots:
+                print(f"[DEBUG] Colisiones detectadas: {duplicates} de nextPos")
+                # stop one bot with duplicate next pos and step the other
+                botsWithDup = [bot for bot in self.bots if bot.getNextPos() in duplicates]
+                
+                if botsWithDup:
+                    print(f"[DEBUG] Bots con próxima posición duplicada: {[bot.unique_id for bot in botsWithDup]}")
+                    botToStop = botsWithDup[0]
+                    print(f"[DEBUG] Bot {botToStop.unique_id} detenido")
+                    
+            # di cuales bots no jalan
+            if botToStop:
+                print(f"[DEBUG] Bot {botToStop.unique_id} detenido")
+                
+            # if otherBot:
+            #     print(f"[DEBUG] Otro bot {otherBot.unique_id} detenido")     
+            
+            for bot in self.bots:
+                if bot != botToStop:
                     bot.step()
                     print(f"[DEBUG] Bot {bot.unique_id} avanzó a {bot.pos}")
+             
+            
+            # if len(set(next_posArr)) != len(next_posArr):
+            #     print("[DEBUG] Colisiones detectadas. Resolviendo...")
+            #     coords, indexes = self.check_collision(next_posArr)
+            #     for i in indexes:
+            #         print(f"[DEBUG] Bot {self.bots[i].unique_id} avanzando a {coords[i]}")
+            #         self.bots[i].step()
+            # else:
+            #     for bot in self.bots:
+            #         bot.step()
+            #         print(f"[DEBUG] Bot {bot.unique_id} avanzó a {bot.pos}")
 
         self.current_step += 1
         print(f"[STEP {self.current_step}] Finalizando paso del LGVManager\n")
@@ -265,7 +337,7 @@ class LGV(Agent):
         self.target = [] # target = [(x,y), (x,y)]
         self.map = self.read_map()
 
-    def astar(self, start, end):
+    def astar(self, start, end, otherBotsPositions=None):
         """
         Implementación mejorada del algoritmo A* con inversión del eje Y.
         """
@@ -292,6 +364,11 @@ class LGV(Agent):
 
         # Convertir el mapa en binario
         grid = [[1 if char in {'M', 'S', 'U', 'J', 'I', 'O'} else 0 for char in row] for row in self.map]
+        
+        # Ajustar posiciones de otros bots
+        if otherBotsPositions:
+            for bot_pos in otherBotsPositions:
+                grid[bot_pos[1]][bot_pos[0]] = 1
 
         # Escribir el grid invertido en un archivo
         root_path = os.path.dirname(os.path.abspath(__file__))
@@ -350,6 +427,12 @@ class LGV(Agent):
 
     def getNextPos(self):
         return self.path.queue[0] if not self.path.empty() else None
+    
+    def recalcAstar(self, otherBotsPositions):
+        if not self.path.empty():
+            new_path = self.astar(self.pos, self.target[0], otherBotsPositions)
+            self.path = new_path
+            print(f"[BOT] Bot ID={self.unique_id} recalculando path {list(self.path.queue)}")
 
     def asign_task(self, target):
         for cord in target:
