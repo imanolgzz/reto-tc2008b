@@ -164,7 +164,7 @@ class LGVManager(Agent):
             if bot.hasTask == False:
                 available_bots.append(bot)
 
-        print(f"[DEBUG] Bots disponibles: {[bot.unique_id for bot in available_bots]}")
+        print(f"[DEBUG] Bots disponibles: {[(bot.unique_id, bot.pos) for bot in available_bots]}")
 
         # Asignar tareas a los bots disponibles
         if available_bots:
@@ -411,10 +411,11 @@ class LGV(Agent):
             _, current = heapq.heappop(open_set)
 
             if current == inverted_end:
-                path = []
+                path = []  # Agregar la coordenada inicial del bot como primer paso
                 while current in came_from:
                     path.append(current)
                     current = came_from[current]
+                path.append(inverted_start)
                 path.reverse()
 
                 # Reconstruir camino con las coordenadas originales (invirtiendo Y nuevamente)
