@@ -365,7 +365,9 @@ class LGV(Agent):
 
             # si tiene una tarea asignada, moverse a la siguiente posición
             if not self.path.empty(): # aun le quedan pasos por dar
-                self.pos = self.path.get()
+                next_pos = self.path.get()
+                self.model.grid.remove_agent(self)
+                self.pos = next_pos
                 print(f"[BOT] Bot ID={self.unique_id} avanzando a {self.pos}")
                 if self.pos == self.target[0] and len(self.target) > 1: # aun tiene otro target
                     self.target.pop(0)
