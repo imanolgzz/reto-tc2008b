@@ -254,6 +254,10 @@ class LGVManager(Agent):
                             bot_direction = (bot.getNextPos()[0] - bot.pos[0], bot.getNextPos()[1] - bot.pos[1])
                             bBot_direction = (bBot.getNextPos()[0] - bBot.pos[0], bBot.getNextPos()[1] - bBot.pos[1])
                             
+                            # if theyre not face to face continue
+                            #if (bot_direction[0] != 0 and bBot_direction[0] == 0) or (bot_direction[1] != 0 and bBot_direction[0] == 0) or (bBot_direction[0] != 0 and bot_direction[0] == 0) or (bBot_direction[1] != 0 and bot_direction[0] == 0):
+                            #    break
+                            
                             # objectpos checking racks and coords
                             objectPos = set()
                             for rack in self.racks:
@@ -261,27 +265,37 @@ class LGVManager(Agent):
                             objectPos.add(self.cords["entrada"])
                             objectPos.add(self.cords["salida"])
                             
+                            alternative_paths = []
+                            
+                            nextP = bot.getNextPos()
+                            
                             if (bot_direction == (0, -1) and bBot_direction == (0, 1)) or (bot_direction == (0, 1) and bBot_direction == (0, -1)):  # vertical crash
                                 # check if left or right is free checking objectPos
                                 if (bot.pos[0] - 1, bot.pos[1]) not in objectPos:
-                                    alternative_paths = [(bot.pos[0] - 1, bot.pos[1]), (bot.pos[0] + 1, bot.pos[1])] # left -> right
-                                if (bot.pos[0] + 1, bot.pos[1]) not in objectPos:
-                                    alternative_paths = [(bot.pos[0] + 1, bot.pos[1]), (bot.pos[0] - 1, bot.pos[1])] # right -> left
+                                    alternative_paths = [(bot.pos[0] - 1, bot.pos[1]), bot.pos] # left -> right
+                                elif (bot.pos[0] + 1, bot.pos[1]) not in objectPos:
+                                    alternative_paths = [(bot.pos[0] + 1, bot.pos[1]), bot.pos] # right -> left
+                                    
+                                print(f"[DEBUG] Vertical crash detected. Bot {bot.unique_id} rerouting")
                                 
                             elif (bot_direction == (-1, 0) and bBot_direction == (1, 0)) or (bot_direction == (1, 0) and bBot_direction == (-1, 0)):  # horizontal crash
                                 # check if up or down is free checking objectPos
                                 if (bot.pos[0], bot.pos[1] - 1) not in objectPos:
-                                    alternative_paths = [(bot.pos[0], bot.pos[1] - 1), (bot.pos[0], bot.pos[1] + 1)] # up -> down
-                                if (bot.pos[0], bot.pos[1] + 1) not in objectPos:
-                                    alternative_paths = [(bot.pos[0], bot.pos[1] + 1), (bot.pos[0], bot.pos[1] - 1)] # down -> up
+                                    alternative_paths = [(bot.pos[0], bot.pos[1] + 1), bot.pos] # down -> up
+                                elif (bot.pos[0], bot.pos[1] + 1) not in objectPos:
+                                    alternative_paths = [(bot.pos[0], bot.pos[1] - 1), bot.pos] # up -> down
+                                    
+                                print(f"[DEBUG] Horizontal crash detected. Bot {bot.unique_id} rerouting")
                             
-                            newPath = queue.Queue()
-                            newPath.put(alternative_paths[0])
-                            newPath.put(alternative_paths[1])
-                            while(bot.path.qsize() > 0):
-                                newPath.put(bot.path.get())
-                            bot.path = newPath
-                            print(f"[DEBUG] Bot {bot.unique_id} rerouted")
+                            if alternative_paths:
+                                newPath = queue.Queue()
+                                newPath.put(alternative_paths[0])
+                                newPath.put(alternative_paths[1])
+                                
+                                while(bot.path.qsize() > 0):
+                                    newPath.put(bot.path.get())
+                                bot.path = newPath
+                                print(f"[DEBUG] Bot {bot.unique_id} rerouted")
                             
                             #otherBot = bBot
                             break
