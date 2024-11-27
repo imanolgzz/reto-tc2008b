@@ -1,7 +1,6 @@
 from mesa.agent import Agent
 from collections import defaultdict, deque
 import queue
-from queue import PriorityQueue
 import heapq
 import os
 import random
@@ -59,10 +58,6 @@ class LGVManager(Agent):
             print("[DEBUG] No hay racks elegibles disponibles")
             return None
         
-        print(f"[DEBUG] Posición del bot: {bot_pos}")
-        # print pos of rack 0
-        print(f"[DEBUG] Posición del rack 0: {eligible_racks[0][1]}")
-        
         distances = [
             {
                 "rack": rack,
@@ -92,7 +87,6 @@ class LGVManager(Agent):
             bot_pos = bot.get_position()
             for rack in racks_with_pallets:
                 distance = self.calc_distance(bot_pos, rack[1])
-                print(f"[DEBUG] Bot ID={bot.unique_id}, Posición={bot_pos}, Rack ID={rack[0]}, Posición={rack[1]}, Distancia={distance}")
                 if distance < min_distance:
                     min_distance = distance
                     closest_bot = bot
@@ -141,7 +135,7 @@ class LGVManager(Agent):
 
     def step(self):
         print(f"\n[STEP {self.current_step}] Iniciando paso del LGVManager")
-        if self.current_step >= self.time: # terminar simulación
+        if self.current_step*0.1 >= self.time: # terminar simulación
             self.done = True
             print("[DEBUG] Tiempo límite alcanzado. Finalizando simulación.")
             return
@@ -271,71 +265,86 @@ class LGV(Agent):
         self.target = [] # target = [(x,y), (x,y)]
         self.map = self.read_map()
 
-
     def astar(self, start, end):
-        # Convertir el mapa actual en una representación binaria
-        grid = [[1 if char in {'M', 'S', 'U', 'J', 'I', 'O'} else 0 for char in row] for row in self.map]
-        
-        print(f"[DEBUG] Iniciando A* desde {start} hasta {end}")
-        
-        # print end char
-        print(f"[DEBUG] Start char: {self.map[start[1]][start[0]]}")
-        print(f"[DEBUG] End char: {self.map[end[1]][end[0]]}")
+        """
+        Implementación mejorada del algoritmo A* con inversión del eje Y.
+        """
+        # Invertir coordenadas Y para trabajar con la representación invertida
+        inverted_start = (start[0], len(self.map) - 1 - start[1])
+        inverted_end = (end[0], len(self.map) - 1 - end[1])
 
-        # Definir función heurística (distancia Manhattan)
+        # Ajustar el destino si es un rack
+        if self.map[inverted_end[1]][inverted_end[0]] == 'S':
+            directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+            for dx, dy in directions:
+                nx, ny = inverted_end[0] + dx, inverted_end[1] + dy
+                if 0 <= nx < len(self.map[0]) and 0 <= ny < len(self.map) and self.map[ny][nx] == '-':
+                    inverted_end = (nx, ny)
+                    break
+
+        # Validar inicio y fin
+        if self.map[inverted_start[1]][inverted_start[0]] in {'M', 'S', 'U', 'J', 'I', 'O'}:
+            print(f"[ASTAR] El punto inicial está bloqueado. {self.map[start[1]][start[0]]}, {start}")
+            return queue.Queue()
+        if self.map[inverted_end[1]][inverted_end[0]] in {'M', 'S', 'U', 'J', 'I', 'O'}:
+            print("[DEBUG] El destino está bloqueado. {self.map[end[1]][end[0]]}, {end}")
+            return queue.Queue()
+
+        # Convertir el mapa en binario
+        grid = [[1 if char in {'M', 'S', 'U', 'J', 'I', 'O'} else 0 for char in row] for row in self.map]
+
+        # Escribir el grid invertido en un archivo
+        root_path = os.path.dirname(os.path.abspath(__file__))
+        grid_file = os.path.join(root_path, "grid.txt")
+        with open(grid_file, "w") as file:
+            for row in grid:
+                file.write(" ".join(map(str, row)) + "\n")
+        print(f"[DEBUG] Grid escrito en {grid_file}")
+
+        # Heurística de Manhattan
         def heuristic(a, b):
             return abs(a[0] - b[0]) + abs(a[1] - b[1])
-        
-        # flip x and y on end
-        end = (end[1], end[0])
-        
-        print(f"[DEBUG] Start: {start}, End: {end}")
-        print(f"[DEBUG] End char: {self.map[end[1]][end[0]]}")
 
+        # Inicialización
         open_set = []
-        heapq.heappush(open_set, (0, start))
+        heapq.heappush(open_set, (0, inverted_start))
         came_from = {}
-        g_score = {start: 0}
-        f_score = {start: heuristic(start, end)}
+        g_score = {inverted_start: 0}
+        f_score = {inverted_start: heuristic(inverted_start, inverted_end)}
 
         while open_set:
             _, current = heapq.heappop(open_set)
 
-            if current == end:
-                # Reconstrucción del camino
+            if current == inverted_end:
                 path = []
                 while current in came_from:
                     path.append(current)
                     current = came_from[current]
-                path.append(start)  # Include the start point
                 path.reverse()
-                print(f"[DEBUG] Camino encontrado: {path}")
-                
-                # Convertir el camino en una cola
+
+                # Reconstruir camino con las coordenadas originales (invirtiendo Y nuevamente)
                 queue_path = queue.Queue()
                 for step in path:
-                    queue_path.put(step)
+                    original_step = (step[0], len(self.map) - 1 - step[1])
+                    queue_path.put(original_step)
                 return queue_path
 
             neighbors = [
                 (current[0] + dx, current[1] + dy)
-                for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]  # Add diagonals if needed
-                if 0 <= current[0] + dx < len(grid) and 0 <= current[1] + dy < len(grid[0])
-                and grid[current[0] + dx][current[1] + dy] == 0  # Check if cell is walkable
+                for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]
             ]
-
-            
             for neighbor in neighbors:
-                tentative_g_score = g_score[current] + 1
-                if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
-                    came_from[neighbor] = current
-                    g_score[neighbor] = tentative_g_score
-                    f_score[neighbor] = tentative_g_score + heuristic(neighbor, end)
-                    heapq.heappush(open_set, (f_score[neighbor], neighbor))
-                    #print(f"[DEBUG] Vecino añadido: {neighbor} con f_score: {f_score[neighbor]}")
+                if 0 <= neighbor[0] < len(grid[0]) and 0 <= neighbor[1] < len(grid) and grid[neighbor[1]][neighbor[0]] == 0:
+                    tentative_g_score = g_score[current] + 1
+                    if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
+                        came_from[neighbor] = current
+                        g_score[neighbor] = tentative_g_score
+                        f_score[neighbor] = tentative_g_score + heuristic(neighbor, inverted_end)
+                        heapq.heappush(open_set, (f_score[neighbor], neighbor))
 
         print("[DEBUG] No se encontró camino")
-        return queue.Queue()  # Si no hay camino
+        return queue.Queue()
+
 
 
 
@@ -356,7 +365,6 @@ class LGV(Agent):
 
             # si tiene una tarea asignada, moverse a la siguiente posición
             if not self.path.empty(): # aun le quedan pasos por dar
-                old_pos = self.pos
                 self.pos = self.path.get()
                 print(f"[BOT] Bot ID={self.unique_id} avanzando a {self.pos}")
                 if self.pos == self.target[0] and len(self.target) > 1: # aun tiene otro target
@@ -367,7 +375,6 @@ class LGV(Agent):
                     self.hasTask = False
                     self.hasPallete = False
                     self.target = []
-                    
                 self.model.grid.move_agent(self, self.pos)
 
 
@@ -395,60 +402,15 @@ class LGV(Agent):
             print(f"Error reading the file: {e}")
             return None
 
-    @staticmethod
-    def from_txt_to_desc1(file_path):
-        try:
-            with open(file_path, 'r') as file:
-                desc = [line.strip() for line in file.readlines()][::-1]
-            # Find the position of 'I'
-            for row_index, line in enumerate(desc):
-                col_index = line.find('I')
-                if col_index != -1:
-                    print(f"Position of 'I': Row={row_index}, Col={col_index}")
-            return desc
-        except Exception as e:
-            print(f"Error reading the file: {e}")
-            return None
-
-    @staticmethod
-    def from_txt_to_desc2(file_path):
-        try:
-            with open(file_path, 'r') as file:
-                desc = [line.strip()[::-1] for line in file.readlines()]
-            # Find the position of 'I'
-            for row_index, line in enumerate(desc):
-                col_index = line.find('I')
-                if col_index != -1:
-                    print(f"Position of 'I': Row={row_index}, Col={col_index}")
-            return desc
-        except Exception as e:
-            print(f"Error reading the file: {e}")
-            return None
-
-    @staticmethod
-    def from_txt_to_desc3(file_path):
-        try:
-            with open(file_path, 'r') as file:
-                desc = [line.strip()[::-1] for line in file.readlines()][::-1]
-            # Find the position of 'I'
-            for row_index, line in enumerate(desc):
-                col_index = line.find('I')
-                if col_index != -1:
-                    print(f"Position of 'I': Row={row_index}, Col={col_index}")
-            return desc
-        except Exception as e:
-            print(f"Error reading the file: {e}")
-            return None
-
     def read_map(self):
         desc_file = "maze.txt"
         root_path = os.path.dirname(os.path.abspath(__file__))
         desc = self.from_txt_to_desc(root_path + "/" + desc_file)
-        
-        print(f"[DEBUG] Mapa leído: {desc}")
-        
+        # write desc to file
+        with open(root_path + "/output.txt", 'w') as output_file:
+            for line in desc:
+                output_file.write(f"{line}\n")
         return desc
-
     
 
     
