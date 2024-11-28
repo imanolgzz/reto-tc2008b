@@ -381,7 +381,7 @@ class LGVManager(Agent):
             print("[END] Tiempo acomulado de palletes en entrada:", self.accTime, "segundos")
             # write to file acc time
             with open("acc_time.txt", "w") as f:
-                f.write("[END] Tiempo acomulado de palletes en entrada:", self.accTime, "segundos")
+                f.write(f"[END] Tiempo acomulado de palletes en entrada: {self.accTime} segundos")
             return
 
         self.add_tasks()
