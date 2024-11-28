@@ -5,6 +5,8 @@ import heapq
 import os
 import random
 import json
+import matplotlib.pyplot as plt
+import numpy as np
 
 class LGVManager(Agent):
     def __init__(self, unique_id, model, time):
@@ -15,9 +17,19 @@ class LGVManager(Agent):
         self.current_step = 0
         self.racks = []
         self.time = time*60
+        #self.time = time*10
         self.done = False
         ##print(f"[DEBUG] LGVManager inicializado con tiempo límite: {self.time} segundos")
         self.info = {}
+        
+        self.historic_battery = []
+        self.steps_without_mission = [0, 0, 0]
+        self.assigned_tasks = ["", "", ""]
+        # self.ended_entrada_rack = []
+        # self.ended_rack_salida = []
+        # self.ended_entrada_salida = []
+        self.ended = {"entrada-rack": [], "rack-salida": [], "entrada-salida": []}
+        
 
     def add_bot(self, bot):
         bot.cords = self.cords
@@ -178,6 +190,147 @@ class LGVManager(Agent):
     def get_battery_levels(self):
         return {bot.unique_id: bot.battery for bot in self.bots}
     
+    def plot_battery_levels(self):        
+        # Ensure data consistency
+        if not self.historic_battery or len(self.historic_battery[0]) != len(self.bots):
+            print("[ERROR] Inconsistent battery data.")
+            print(f"[DEBUG] Historic battery data: {self.historic_battery}")
+            print(f"[DEBUG] Number of bots: {len(self.bots)}")
+            print(f"[DEBUG] Number of battery levels: {len(self.historic_battery[0])}")
+            return
+
+        for i, bot in enumerate(self.bots):
+            try:
+                plt.plot([j[i] for j in self.historic_battery], label=f"Bot {bot.unique_id}")
+            except IndexError:
+                print(f"[ERROR] IndexError for bot {bot.unique_id} at index {i}.")
+                continue
+        # makey axis from 0 to 100
+        plt.ylim(0.0, 100.0)
+        plt.xlabel("Step")
+        plt.ylabel("Battery Level (%)")
+        plt.title("Battery Levels")
+        plt.legend()
+        plt.savefig("battery_levels.png")
+
+    def plot_utilisation_percentage(self):
+        # bar graph of steps without mission compared to total steps as percentage        
+        total_steps = self.current_step
+        utilisation_percentage = [(total_steps - steps) / total_steps * 100 for steps in self.steps_without_mission]
+        
+        bot_labels = ["Bot 0", "Bot 1", "Bot 2"]
+
+        # Increase figure size for better readability
+        plt.figure(figsize=(8, 6))
+        bars = plt.bar(bot_labels, utilisation_percentage, color=['blue', 'orange', 'green'])
+
+        # Add percentage values above the bars
+        for bar, percentage in zip(bars, utilisation_percentage):
+            plt.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{percentage:.1f}%",
+                ha='center',
+                va='bottom'
+            )
+        
+        plt.xlabel("Bot ID")
+        plt.ylabel("Utilisation Percentage (%)")
+        plt.title("Utilisation Percentage")
+        
+        # Rotate x-axis labels if necessary
+        plt.xticks(rotation=0)
+        
+        # Save or display the plot
+        plt.tight_layout()
+        plt.savefig("utilisation_percentage.png")
+        
+    #  def plot_finished_task_per_flow_per_hour(self):
+    #     # bar graph of tasks finished per flow per hour
+    #     #print(f"[DEBUG] Tareas finalizadas por flujo por hora: {self.ended}")
+        
+    #     # Calculate the number of tasks finished per flow per hour
+    #     tasks_per_flow_per_hour = {
+    #         flow: len(ended) for flow, ended in self.ended.items()
+    #     }
+        
+    #     #print(f"[DEBUG] Tareas finalizadas por flujo por hora: {tasks_per_flow_per_hour}")
+        
+    #     # Increase figure size for better readability
+    #     plt.figure(figsize=(8, 6))
+    #     bars = plt.bar(tasks_per_flow_per_hour.keys(), tasks_per_flow_per_hour.values(), color=['blue', 'orange', 'green'])
+
+    #     # Add values above the bars
+    #     for bar, value in zip(bars, tasks_per_flow_per_hour.values()):
+    #         plt.text(
+    #             bar.get_x() + bar.get_width() / 2,
+    #             bar.get_height(),
+    #             f"{value}",
+    #             ha='center',
+    #             va='bottom'
+    #         )
+        
+    #     plt.xlabel("Flow")
+    #     plt.ylabel("Tasks Finished")
+    #     plt.title("Tasks Finished per Flow per Hour")
+        
+    #     # Rotate x-axis labels if necessary
+    #     plt.xticks(rotation=0)
+        
+    #     # Save or display the plot
+    #     plt.tight_layout()
+    #     plt.savefig("tasks_finished_per_flow_per_hour.png")
+
+    def plot_finished_task_per_flow_per_hour(self):
+        import numpy as np
+
+        # Group tasks by hour (600 steps = 1 hour)
+        tasks_per_flow_per_hour = {}
+
+        for flow, steps in self.ended.items():
+            # Create a dictionary where keys are hour intervals and values are task counts
+            hourly_counts = {}
+            for step in steps:
+                hour = step // 3600  # Determine the hour by dividing step by 600
+                if hour not in hourly_counts:
+                    hourly_counts[hour] = 0
+                hourly_counts[hour] += 1
+            
+            tasks_per_flow_per_hour[flow] = hourly_counts
+
+        # Debug: print the processed data
+        print(f"[DEBUG] Tasks finished per flow per hour: {tasks_per_flow_per_hour}")
+        
+        # Prepare data for plotting
+        flows = list(tasks_per_flow_per_hour.keys())
+        hours = sorted(set(hour for flow in tasks_per_flow_per_hour.values() for hour in flow.keys()))
+        
+        # Create a matrix of counts for each flow and hour
+        flow_hour_counts = []
+        for flow in flows:
+            flow_counts = [tasks_per_flow_per_hour[flow].get(hour, 0) for hour in hours]
+            flow_hour_counts.append(flow_counts)
+
+        # Plot the bar chart with grouped bars
+        x = np.arange(len(hours))  # the label locations (one for each hour)
+        width = 0.2  # width of the bars
+
+        plt.figure(figsize=(10, 6))
+        for i, (flow, counts) in enumerate(zip(flows, flow_hour_counts)):
+            plt.bar(x + i * width, counts, width, label=f"Flow {flow}")
+
+        # Add labels and titles
+        plt.xlabel("Hour")
+        plt.ylabel("Tasks Finished")
+        plt.title("Tasks Finished per Flow per Hour")
+        plt.xticks(x + width * (len(flows) - 1) / 2, [f"Hour {hour}" for hour in hours])
+        plt.legend()
+
+        # Save or display the plot
+        plt.tight_layout()
+        plt.savefig("tasks_finished_per_flow_per_hour.png")
+        
+    
     def generate_json(self):
         # Crear una lista de pasos en lugar de un diccionario
         steps_data = []
@@ -220,6 +373,9 @@ class LGVManager(Agent):
         #print(f"\n[STEP {self.current_step}] Iniciando paso del LGVManager")
         if self.current_step*0.1 >= self.time: # terminar simulación
             self.generate_json()
+            self.plot_battery_levels()
+            self.plot_utilisation_percentage()
+            self.plot_finished_task_per_flow_per_hour()
             self.done = True
             #print("[DEBUG] Tiempo límite alcanzado. Finalizando simulación.")
             return
@@ -266,6 +422,14 @@ class LGVManager(Agent):
                 bot.charging = True
                 print(f"[DEBUG URGENTE] Bot {bot.unique_id} cargando batería")
                 
+        
+        # checar si bots no estan haciendo nada
+        for bot in self.bots:
+            if bot.hasTask == False:
+                if self.assigned_tasks[bot.unique_id] != "":
+                    self.ended[self.assigned_tasks[bot.unique_id]].append(self.current_step)
+                    self.assigned_tasks[bot.unique_id] = ""
+                self.steps_without_mission[bot.unique_id] += 1
                 
         
 
@@ -282,6 +446,7 @@ class LGVManager(Agent):
                         best = self.eucladian_distance(available_bots, self.cords["entrada1"])
                         bot = available_bots[best]
                         bot.asign_task(target=[self.cords[f"entrada{bot.unique_id}"], self.cords[f"salida{bot.unique_id}"]])
+                        self.assigned_tasks[bot.unique_id] = "entrada-salida"
                         #print(f"[DEBUG] Bot {bot.unique_id} asignado a entrada-salida")
                         available_bots.remove(bot)
                         self.tasks.get()  # Eliminar la tarea de la cola
@@ -292,6 +457,7 @@ class LGVManager(Agent):
                         if rack:
                             #print(f"[DEBUG] Bot {bot.unique_id} asignado a entrada-rack con rack ID={rack[0]}")
                             bot.asign_task(target=[self.cords[f"entrada{bot.unique_id}"], rack[1]])
+                            self.assigned_tasks[bot.unique_id] = "entrada-rack"
                             bot.currRack = rack
                             available_bots.remove(bot)
                             self.tasks.get()  # Eliminar la tarea de la cola
@@ -305,6 +471,7 @@ class LGVManager(Agent):
                             #print(f"[DEBUG] Bot {closest_bot} asignado a rack-salida con rack ID={closest_rack[0]}")
                             bot = self.bots[closest_bot]
                             bot.asign_task(target=[closest_rack[1], self.cords[f"salida{bot.unique_id}"]])
+                            self.assigned_tasks[bot.unique_id] = "rack-salida"
                             bot.currRack = closest_rack
                             available_bots.remove(bot)
                             self.tasks.get()  # Eliminar la tarea de la cola
@@ -320,6 +487,7 @@ class LGVManager(Agent):
                 #print(f"[DEBUG] Evaluando tarea: {current_task}")
                 if current_task["task"] == "entrada-salida":
                     bot.asign_task(target=[self.cords[f"entrada{bot.unique_id}"], self.cords[f"salida{bot.unique_id}"]])
+                    self.assigned_tasks[bot.unique_id] = "entrada-salida"
                     #print(f"[DEBUG] Bot {bot.unique_id} asignado a entrada-salida")
                     available_bots.remove(bot)
                     self.tasks.get()  # Eliminar la tarea de la cola
@@ -328,6 +496,7 @@ class LGVManager(Agent):
                     if rack:
                         #print(f"[DEBUG] Bot {bot.unique_id} asignado a entrada-rack con rack ID={rack[0]}")
                         bot.asign_task(target=[self.cords[f"entrada{bot.unique_id}"], rack[1]])
+                        self.assigned_tasks[bot.unique_id] = "entrada-rack"
                         bot.currRack = rack
                         available_bots.remove(bot)
                         self.tasks.get()  # Eliminar la tarea de la cola
@@ -341,6 +510,7 @@ class LGVManager(Agent):
                         #print(f"[DEBUG] Bot {closest_bot} asignado a rack-salida con rack ID={closest_rack[0]}")
                         bot = self.bots[closest_bot]
                         bot.asign_task(target=[closest_rack[1], self.cords[f"salida{bot.unique_id}"]])
+                        self.assigned_tasks[bot.unique_id] = "rack-salida"
                         bot.currRack = closest_rack
                         available_bots.remove(bot)
                         self.tasks.get()  # Eliminar la tarea de la cola
@@ -449,7 +619,9 @@ class LGVManager(Agent):
             self.info.update({self.current_step: {"agents": [{"id": bot.unique_id, "position": {"x": bot.pos[0], "z": bot.pos[1]}, "has_pallet": bot.hasPallete } for bot in self.bots], "racks": [{"id": rack[0], "position": {"x": rack[1][0], "z": rack[1][1]}, "pallets": rack[2]} for rack in self.racks]}})
         else:
             self.info.update({self.current_step: {"agents": [{"id": bot.unique_id, "position": {"x": bot.pos[0], "z": bot.pos[1]}, "has_pallet": bot.hasPallete } for bot in self.bots], "racks": [{"id": rack[0], "position": {"x": rack[1][0], "z": rack[1][1]}, "pallets": rack[2]} for rack in modified_racks]}})
-        
+                
+        self.historic_battery.append([bot.battery for bot in self.bots])
+                
         self.current_step += 1
         
         #print(f"[STEP {self.current_step}] Finalizando paso del LGVManager\n")
@@ -471,6 +643,7 @@ class LGV(Agent):
         self.grid = [[1 if char in {'M', 'S', 'U', 'J', 'I', 'O'} else 0 for char in row] for row in self.map]
         self.cords = {}
         self.currRack = None
+        self.currStep = -1
         
         self.static = False
         self.pickIn = False
@@ -579,6 +752,7 @@ class LGV(Agent):
         self.hasTask = True
 
     def step(self):
+        self.currStep += 1
         self.static = True
         self.battery -= 1/720
         if self.charging and self.path.empty():
