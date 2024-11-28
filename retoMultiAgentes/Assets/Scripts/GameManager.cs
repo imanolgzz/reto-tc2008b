@@ -91,7 +91,7 @@ public class GameManager : MonoBehaviour
     }
 
     void MoveRobotToPoint(GameObject robot, Vector3 targetPosition){
-        StartCoroutine(MoveRobot(robot, targetPosition, 1.5f/simulationSpeed - 0.1f)); // Mueve en 1 segundo
+        StartCoroutine(MoveRobot(robot, targetPosition, 1.5f/simulationSpeed - 0.0f)); // Mueve en 1 segundo
     }
 
     public GameObject SelectObjectByCoordinates(float x, float y, float z){
