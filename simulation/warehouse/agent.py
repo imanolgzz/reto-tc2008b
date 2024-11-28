@@ -16,21 +16,21 @@ class LGVManager(Agent):
         self.racks = []
         self.time = time*60
         self.done = False
-        #print(f"[DEBUG] LGVManager inicializado con tiempo límite: {self.time} segundos")
+        ##print(f"[DEBUG] LGVManager inicializado con tiempo límite: {self.time} segundos")
         self.info = {}
 
     def add_bot(self, bot):
         bot.cords = self.cords
         self.bots.append(bot)
-        #print(f"[DEBUG] Bot añadido: ID={bot.unique_id}, posición inicial={bot.pos}")
+        ##print(f"[DEBUG] Bot añadido: ID={bot.unique_id}, posición inicial={bot.pos}")
         
     def add_rack(self, id, pos):
         self.racks.append((id, pos, random.randint(0, 3)))  # ID, posición, pallets
-        #print(f"[DEBUG] Rack añadido: ID={id}, posición={pos}")
+        ##print(f"[DEBUG] Rack añadido: ID={id}, posición={pos}")
         
     def add_tasks(self):
         while self.tasks.qsize() < len(self.bots) * 2:  # Generar nuevas tareas
-            print("[DEBUG] Generando nuevas tareas...")
+            #print("[DEBUG] Generando nuevas tareas...")
 
             # random from 1 to 55
             rand_num = random.randint(1, 55)
@@ -44,20 +44,20 @@ class LGVManager(Agent):
 
     def assign_tasks(self, task):
         self.tasks.put(task)
-        #print(f"[DEBUG] Tarea asignada: {task}")
+        ##print(f"[DEBUG] Tarea asignada: {task}")
     
     def calc_distance(self, pos1, pos2):
         distance = abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
-        #print(f"[DEBUG] Calculando distancia entre {pos1} y {pos2}: {distance}")
+        ##print(f"[DEBUG] Calculando distancia entre {pos1} y {pos2}: {distance}")
         return distance
     
     def closest_rack(self, bot_pos):
-        print(f"[DEBUG] Buscando rack más cercano a la posición del bot: {bot_pos}")
+        #print(f"[DEBUG] Buscando rack más cercano a la posición del bot: {bot_pos}")
         eligible_racks = [rack for rack in self.racks if rack[2] < 3]
-        #print(f"[DEBUG] Racks elegibles: {eligible_racks}")
+        ##print(f"[DEBUG] Racks elegibles: {eligible_racks}")
         
         if not eligible_racks:
-            print("[DEBUG] No hay racks elegibles disponibles")
+            #print("[DEBUG] No hay racks elegibles disponibles")
             return None
         
         distances = [
@@ -68,23 +68,39 @@ class LGVManager(Agent):
             for rack in eligible_racks
         ]
         
-        closest_rack = min(distances, key=lambda d: d["distance"])
-        print(f"[DEBUG] Rack más cercano encontrado: {closest_rack['rack']}, Pallets actuales: {closest_rack['rack'][2]}")
+        occupied_racks = [bot.currRack for bot in self.bots if bot.currRack]
+
+        #closest_rack = min(distances, key=lambda d: d["distance"])
+        closest_rack = None
+        min_distance = float('inf')
+
+        # Iterar sobre racks elegibles y verificar ocupación
+        for distance_info in distances:
+            rack = distance_info["rack"]
+            distance = distance_info["distance"]
+
+            if rack[0] not in occupied_racks and distance < min_distance:
+                closest_rack = rack
+                min_distance = distance
+
+        
+
+        #print(f"[DEBUG] Rack más cercano encontrado: {closest_rack['rack']}, Pallets actuales: {closest_rack['rack'][2]}")
         # Actualizar el rack directamente en self.racks
-        for i, rack in enumerate(self.racks):
-            if rack[0] == closest_rack["rack"][0]:
-                #self.racks[i] = (rack[0], rack[1], rack[2] + 1)  # Incrementar pallets
-                print(f"[DEBUG] Rack actualizado: {self.racks[i]}")
-                break
-        return closest_rack["rack"]
+        # for i, rack in enumerate(self.racks):
+        #     if rack[0] == closest_rack["rack"][0]:
+        #         #self.racks[i] = (rack[0], rack[1], rack[2] + 1)  # Incrementar pallets
+        #         #print(f"[DEBUG] Rack actualizado: {self.racks[i]}")
+        #         break
+        return closest_rack
     
     def find_nearest_bot_to_pallet(self, available_bots):
-        print(f"[DEBUG] Buscando bot más cercano a un rack con pallets disponibles")
+        #print(f"[DEBUG] Buscando bot más cercano a un rack con pallets disponibles")
         racks_with_pallets = [rack for rack in self.racks if rack[2] > 0]
-        print(f"[DEBUG] Racks con pallets: {racks_with_pallets}")
+        #print(f"[DEBUG] Racks con pallets: {racks_with_pallets}")
 
         if not racks_with_pallets:
-            print("[DEBUG] No hay racks con pallets disponibles")
+            #print("[DEBUG] No hay racks con pallets disponibles")
             return None
 
         closest_bot = None
@@ -100,27 +116,27 @@ class LGVManager(Agent):
                     closest_bot = bot
                     closest_rack = rack
 
-        print(f"[DEBUG] Bot más cercano: Bot {closest_bot.unique_id}, Rack más cercano: {closest_rack}")
+        #print(f"[DEBUG] Bot más cercano: Bot {closest_bot.unique_id}, Rack más cercano: {closest_rack}")
             # Actualizar el rack seleccionado en self.racks
         if closest_rack:
             for i, rack in enumerate(self.racks):
                 if rack[0] == closest_rack[0]:
                     #self.racks[i] = (rack[0], rack[1], rack[2] - 1)  # Restar 1 pallet
-                    print(f"[DEBUG] Rack actualizado tras asignación: {self.racks[i]}")
+                    #print(f"[DEBUG] Rack actualizado tras asignación: {self.racks[i]}")
                     break
 
         return closest_bot.unique_id, closest_rack
 
     def check_collision(self, next_pos):
-        print(f"[DEBUG] Comprobando colisiones para posiciones: {next_pos}")
+        #print(f"[DEBUG] Comprobando colisiones para posiciones: {next_pos}")
         indices = defaultdict(list)
 
         for index, coord in enumerate(next_pos):
             indices[coord].append(index)
 
         duplicates = {coord: idx_list for coord, idx_list in indices.items() if len(idx_list) > 1}
-        if duplicates:
-            print(f"[DEBUG] Colisiones detectadas: {duplicates}")
+        #if duplicates:
+            #print(f"[DEBUG] Colisiones detectadas: {duplicates}")
         
         selected_coords = []
         selected_indices = []
@@ -132,21 +148,21 @@ class LGVManager(Agent):
                 selected_indices.append(index)
                 seen_coords.add(coord)
 
-        print(f"[DEBUG] Coordenadas seleccionadas: {selected_coords}, Índices: {selected_indices}")
+        #print(f"[DEBUG] Coordenadas seleccionadas: {selected_coords}, Índices: {selected_indices}")
         return selected_coords, selected_indices
 
     def eucladian_distance(self, bots, dest):
-        print(f"[DEBUG] Calculando distancia euclidiana a destino {dest}")
+        #print(f"[DEBUG] Calculando distancia euclidiana a destino {dest}")
         bot_min_index = None
         min_distance = float('inf')
         for i, bot in enumerate(bots):
             bot_pos = bot.pos
             distance = ((bot_pos[0] - dest[0])**2 + (bot_pos[1] - dest[1])**2)**0.5
-            print(f"[DEBUG] Bot ID={bot.unique_id}, Posición={bot_pos}, Distancia={distance}")
+            #print(f"[DEBUG] Bot ID={bot.unique_id}, Posición={bot_pos}, Distancia={distance}")
             if distance < min_distance:
                 min_distance = distance
                 bot_min_index = i
-        print(f"[DEBUG] Bot más cercano: índice={bot_min_index}")
+        #print(f"[DEBUG] Bot más cercano: índice={bot_min_index}")
         return bot_min_index
     
     def get_battery_levels(self):
@@ -187,21 +203,21 @@ class LGVManager(Agent):
         output_path = "simulation_results.json"
         with open(output_path, 'w') as json_file:
             json.dump(steps_data, json_file, indent=2)
-        print(f"[DEBUG] JSON generado en {output_path}")
+        #print(f"[DEBUG] JSON generado en {output_path}")
 
 
 
     def step(self):
-        print(f"\n[STEP {self.current_step}] Iniciando paso del LGVManager")
+        #print(f"\n[STEP {self.current_step}] Iniciando paso del LGVManager")
         if self.current_step*0.1 >= self.time: # terminar simulación
             self.generate_json()
             self.done = True
-            print("[DEBUG] Tiempo límite alcanzado. Finalizando simulación.")
+            #print("[DEBUG] Tiempo límite alcanzado. Finalizando simulación.")
             return
 
         self.add_tasks()
 
-        print(f"[DEBUG] Total de tareas en cola: {self.tasks.qsize()}")
+        #print(f"[DEBUG] Total de tareas en cola: {self.tasks.qsize()}")
 
         # checar si hay bots sin tasks
         available_bots = []
@@ -209,14 +225,14 @@ class LGVManager(Agent):
             if bot.hasTask == False and bot.charging == False:
                 available_bots.append(bot)
 
-        print(f"[DEBUG] Bots disponibles: {[(bot.unique_id, bot.pos) for bot in available_bots]}")
+        #print(f"[DEBUG] Bots disponibles: {[(bot.unique_id, bot.pos) for bot in available_bots]}")
         
         
         modified_racks = []
         # checar si un bot acaba de hacer algo con rack
         for bot in self.bots:
             if bot.currRack:
-                print(f"[DEBUG] Bot {bot.unique_id} con rack ID={bot.currRack[0]}")
+                #print(f"[DEBUG] Bot {bot.unique_id} con rack ID={bot.currRack[0]}")
                 if bot.pickRack:
                     for i, rack in enumerate(self.racks):
                         if rack[0] == bot.currRack[0]:
@@ -224,7 +240,7 @@ class LGVManager(Agent):
                             modified_racks.append(self.racks[i])
                             bot.currRack = None
                             break
-                    print(f"[DEBUG] Bot {bot.unique_id} dejando pallet")
+                    #print(f"[DEBUG] Bot {bot.unique_id} dejando pallet")
                 elif bot.dropRack:
                     for i, rack in enumerate(self.racks):
                         if rack[0] == bot.currRack[0]:
@@ -232,32 +248,32 @@ class LGVManager(Agent):
                             modified_racks.append(self.racks[i])
                             bot.currRack = None
                             break
-                    print(f"[DEBUG] Bot {bot.unique_id} dejó pallet")
+                    #print(f"[DEBUG] Bot {bot.unique_id} dejó pallet")
         
         # checar if available bots tienen menos de 70% de batería
         for bot in available_bots:
             if bot.battery < 70:
                 bot.asign_task(target=[self.cords[f"cargador{bot.unique_id}"]])
                 bot.charging = True
-                print(f"[DEBUG] Bot {bot.unique_id} cargando batería")
+                #print(f"[DEBUG] Bot {bot.unique_id} cargando batería")
                 
                 
         
 
         # Asignar tareas a los bots disponibles
         if available_bots:
-            print(f"[DEBUG] Asignando tareas a {len(available_bots)} bots disponibles...")
+            #print(f"[DEBUG] Asignando tareas a {len(available_bots)} bots disponibles...")
             if len(available_bots) > 1:  # Más de un bot disponible
                 while available_bots:
                     if self.tasks.empty():
                         self.add_tasks()
                     current_task = self.tasks.queue[0]  # Consultar la tarea en la parte frontal de la cola
-                    print(f"[DEBUG] Evaluando tarea: {current_task}")
+                    #print(f"[DEBUG] Evaluando tarea: {current_task}")
                     if current_task["task"] == "entrada-salida":
                         best = self.eucladian_distance(available_bots, self.cords["entrada1"])
                         bot = available_bots[best]
                         bot.asign_task(target=[self.cords[f"entrada{bot.unique_id}"], self.cords[f"salida{bot.unique_id}"]])
-                        print(f"[DEBUG] Bot {bot.unique_id} asignado a entrada-salida")
+                        #print(f"[DEBUG] Bot {bot.unique_id} asignado a entrada-salida")
                         available_bots.remove(bot)
                         self.tasks.get()  # Eliminar la tarea de la cola
                     elif current_task["task"] == "entrada-rack":
@@ -265,26 +281,26 @@ class LGVManager(Agent):
                         bot = available_bots[best]
                         rack = self.closest_rack(self.cords[f"entrada{bot.unique_id}"])
                         if rack:
-                            print(f"[DEBUG] Bot {bot.unique_id} asignado a entrada-rack con rack ID={rack[0]}")
+                            #print(f"[DEBUG] Bot {bot.unique_id} asignado a entrada-rack con rack ID={rack[0]}")
                             bot.asign_task(target=[self.cords[f"entrada{bot.unique_id}"], rack[1]])
                             bot.currRack = rack
                             available_bots.remove(bot)
                             self.tasks.get()  # Eliminar la tarea de la cola
-                        else:
-                            print("[DEBUG] No hay racks disponibles para entrada-rack.")
+                        #else:
+                            #print("[DEBUG] No hay racks disponibles para entrada-rack.")
                     else:
                         result = self.find_nearest_bot_to_pallet(available_bots)
                         
                         if result:
                             closest_bot, closest_rack = result # closest_bot es el ID del bot o el indice del bot en la lista de bots
-                            print(f"[DEBUG] Bot {closest_bot} asignado a rack-salida con rack ID={closest_rack[0]}")
+                            #print(f"[DEBUG] Bot {closest_bot} asignado a rack-salida con rack ID={closest_rack[0]}")
                             bot = self.bots[closest_bot]
                             bot.asign_task(target=[closest_rack[1], self.cords[f"salida{bot.unique_id}"]])
                             bot.currRack = closest_rack
                             available_bots.remove(bot)
                             self.tasks.get()  # Eliminar la tarea de la cola
                         else:
-                            print("[DEBUG] No hay racks disponibles con pallets.")
+                            #print("[DEBUG] No hay racks disponibles con pallets.")
                             self.tasks.get()  # Eliminar la tarea de la cola y continuar
 
             else:  # Solo un bot disponible
@@ -292,46 +308,46 @@ class LGVManager(Agent):
                     self.add_tasks()
                 bot = available_bots[0]
                 current_task = self.tasks.queue[0]
-                print(f"[DEBUG] Evaluando tarea: {current_task}")
+                #print(f"[DEBUG] Evaluando tarea: {current_task}")
                 if current_task["task"] == "entrada-salida":
                     bot.asign_task(target=[self.cords[f"entrada{bot.unique_id}"], self.cords[f"salida{bot.unique_id}"]])
-                    print(f"[DEBUG] Bot {bot.unique_id} asignado a entrada-salida")
+                    #print(f"[DEBUG] Bot {bot.unique_id} asignado a entrada-salida")
                     available_bots.remove(bot)
                     self.tasks.get()  # Eliminar la tarea de la cola
                 elif current_task["task"] == "entrada-rack":
                     rack = self.closest_rack(self.cords[f"entrada{bot.unique_id}"])
                     if rack:
-                        print(f"[DEBUG] Bot {bot.unique_id} asignado a entrada-rack con rack ID={rack[0]}")
+                        #print(f"[DEBUG] Bot {bot.unique_id} asignado a entrada-rack con rack ID={rack[0]}")
                         bot.asign_task(target=[self.cords[f"entrada{bot.unique_id}"], rack[1]])
                         bot.currRack = rack
                         available_bots.remove(bot)
                         self.tasks.get()  # Eliminar la tarea de la cola
-                    else:
-                        print("[DEBUG] No hay racks disponibles para entrada-rack.")
+                    #else:
+                        #print("[DEBUG] No hay racks disponibles para entrada-rack.")
                 else: # todo checar
                     result = self.find_nearest_bot_to_pallet(available_bots)
                         
                     if result:
                         closest_bot, closest_rack = result # closest_bot es el ID del bot o el indice del bot en la lista de bots
-                        print(f"[DEBUG] Bot {closest_bot} asignado a rack-salida con rack ID={closest_rack[0]}")
+                        #print(f"[DEBUG] Bot {closest_bot} asignado a rack-salida con rack ID={closest_rack[0]}")
                         bot = self.bots[closest_bot]
                         bot.asign_task(target=[closest_rack[1], self.cords[f"salida{bot.unique_id}"]])
                         bot.currRack = closest_rack
                         available_bots.remove(bot)
                         self.tasks.get()  # Eliminar la tarea de la cola
                     else:
-                        print("[DEBUG] No hay racks disponibles con pallets.")
+                        #print("[DEBUG] No hay racks disponibles con pallets.")
                         self.tasks.get()  # Eliminar la tarea de la cola y continuar
         # Manejar bots ocupados o en movimiento
         else:
-            print("[DEBUG] Verificando próximas posiciones de los bots...")
+            #print("[DEBUG] Verificando próximas posiciones de los bots...")
             next_posArr = []
             for bot in self.bots:
                 next_pos = bot.getNextPos()
-                print(f"[DEBUG] Bot {bot.unique_id} próxima posición: {next_pos}")
-                if next_pos:
+                #print(f"[DEBUG] Bot {bot.unique_id} próxima posición: {next_pos}")
+                if next_pos and not bot.static:
                     next_posArr.append(next_pos)
-            print(f"[DEBUG] Próximas posiciones: {next_posArr}")
+            #print(f"[DEBUG] Próximas posiciones: {next_posArr}")
             
             botToStop = None
             otherBot = None
@@ -350,11 +366,11 @@ class LGVManager(Agent):
                             
                             if bot.static:
                                 # move other
-                                #bBot.recalcAstar(bot.pos)
+                                bBot.recalcAstar(bot.pos)
                                 break
-                            if bBot.static:
+                            if bBot.static: # todo creo que no
                                 # move bot
-                                #bot.recalcAstar(bBot.pos)
+                                bot.recalcAstar(bBot.pos)
                                 break
                             
                             # objectpos checking racks and coords
@@ -375,7 +391,7 @@ class LGVManager(Agent):
                                 elif (bot.pos[0] + 1, bot.pos[1]) not in objectPos:
                                     alternative_paths = [(bot.pos[0] + 1, bot.pos[1]), bot.pos] # right -> left
                                     
-                                print(f"[DEBUG] Vertical crash detected. Bot {bot.unique_id} rerouting")
+                                #print(f"[DEBUG] Vertical crash detected. Bot {bot.unique_id} rerouting")
                                 
                             elif (bot_direction == (-1, 0) and bBot_direction == (1, 0)) or (bot_direction == (1, 0) and bBot_direction == (-1, 0)):  # horizontal crash
                                 # check if up or down is free checking objectPos
@@ -384,7 +400,7 @@ class LGVManager(Agent):
                                 elif (bot.pos[0], bot.pos[1] + 1) not in objectPos:
                                     alternative_paths = [(bot.pos[0], bot.pos[1] + 1), bot.pos] # up -> down
                                     
-                                print(f"[DEBUG] Horizontal crash detected. Bot {bot.unique_id} rerouting")
+                                #print(f"[DEBUG] Horizontal crash detected. Bot {bot.unique_id} rerouting")
                             
                             if alternative_paths:
                                 newPath = queue.Queue()
@@ -394,31 +410,31 @@ class LGVManager(Agent):
                                 while(bot.path.qsize() > 0):
                                     newPath.put(bot.path.get())
                                 bot.path = newPath
-                                print(f"[DEBUG] Bot {bot.unique_id} rerouted")
+                                #print(f"[DEBUG] Bot {bot.unique_id} rerouted")
                             
                             #otherBot = bBot
                             break
             else:
-                print(f"[DEBUG] Colisiones detectadas: {duplicates} de nextPos")
+                #print(f"[DEBUG] Colisiones detectadas: {duplicates} de nextPos")
                 # stop one bot with duplicate next pos and step the other
                 botsWithDup = [bot for bot in self.bots if bot.getNextPos() in duplicates]
                 
                 if botsWithDup:
-                    print(f"[DEBUG] Bots con próxima posición duplicada: {[bot.unique_id for bot in botsWithDup]}")
+                    #print(f"[DEBUG] Bots con próxima posición duplicada: {[bot.unique_id for bot in botsWithDup]}")
                     botToStop = botsWithDup[0]
-                    print(f"[DEBUG] Bot {botToStop.unique_id} detenido")
+                    #print(f"[DEBUG] Bot {botToStop.unique_id} detenido")
                     
             # di cuales bots no jalan
-            if botToStop:
-                print(f"[DEBUG] Bot {botToStop.unique_id} detenido")
+            #if botToStop:
+                #print(f"[DEBUG] Bot {botToStop.unique_id} detenido")
                 
             # if otherBot:
-            #     print(f"[DEBUG] Otro bot {otherBot.unique_id} detenido")     
+            #     #print(f"[DEBUG] Otro bot {otherBot.unique_id} detenido")     
             
             for bot in self.bots:
                 if bot != botToStop:
                     bot.step()
-                    print(f"[DEBUG] Bot {bot.unique_id} avanzó a {bot.pos}")
+                    #print(f"[DEBUG] Bot {bot.unique_id} avanzó a {bot.pos}")
         
         if self.current_step == 0:
             self.info.update({self.current_step: {"agents": [{"id": bot.unique_id, "position": {"x": bot.pos[0], "z": bot.pos[1]}, "has_pallet": bot.hasPallete } for bot in self.bots], "racks": [{"id": rack[0], "position": {"x": rack[1][0], "z": rack[1][1]}, "pallets": rack[2]} for rack in self.racks]}})
@@ -427,7 +443,7 @@ class LGVManager(Agent):
         
         self.current_step += 1
         
-        print(f"[STEP {self.current_step}] Finalizando paso del LGVManager\n")
+        #print(f"[STEP {self.current_step}] Finalizando paso del LGVManager\n")
 
 
         
@@ -476,10 +492,10 @@ class LGV(Agent):
 
         # Validar inicio y fin
         if self.map[inverted_start[1]][inverted_start[0]] in {'M', 'S', 'U', 'J', 'I', 'O'}:
-            print(f"[ASTAR] El punto inicial está bloqueado. {self.map[start[1]][start[0]]}, {start}")
+            #print(f"[ASTAR] El punto inicial está bloqueado. {self.map[start[1]][start[0]]}, {start}")
             return queue.Queue()
         if self.map[inverted_end[1]][inverted_end[0]] in {'M', 'S', 'U', 'J', 'I', 'O'}:
-            print("[DEBUG] El destino está bloqueado. {self.map[end[1]][end[0]]}, {end}")
+            #print("[DEBUG] El destino está bloqueado. {self.map[end[1]][end[0]]}, {end}")
             return queue.Queue()
 
         # Convertir el mapa en binario
@@ -487,7 +503,9 @@ class LGV(Agent):
         
         # Evitar colisiones con otros bots
         if otherBotsPositions:
-            grid[otherBotsPositions[0]][otherBotsPositions[1]] = 1
+            #print(f"[DEBUG URGENT] Evitando colisiones con otros bots: {otherBotsPositions[0]}, {otherBotsPositions[1]}. Grid: {len(grid)}x{len(grid[0])}") #96x80 90x115
+            otherBotsPositions = (otherBotsPositions[0], len(grid) - 1 - otherBotsPositions[1])
+            grid[otherBotsPositions[1]][otherBotsPositions[0]] = 1
         
         # Heurística de Manhattan
         def heuristic(a, b):
@@ -531,7 +549,7 @@ class LGV(Agent):
                         f_score[neighbor] = tentative_g_score + heuristic(neighbor, inverted_end)
                         heapq.heappush(open_set, (f_score[neighbor], neighbor))
 
-        print("[DEBUG] No se encontró camino")
+        #print("[DEBUG] No se encontró camino")
         return queue.Queue()
 
 
@@ -543,14 +561,14 @@ class LGV(Agent):
     def recalcAstar(self, otherBotsPositions):
         new_path = self.astar(self.pos, self.target[0], otherBotsPositions)
         self.path = new_path
-        print(f"[BOT] Bot ID={self.unique_id} recalculando path {list(self.path.queue)}")
+        #print(f"[BOT] Bot ID={self.unique_id} recalculando path {list(self.path.queue)}")
 
     def asign_task(self, target):
         for cord in target:
             self.target.append(cord)
-        print(f"[BOT] Bot ID={self.unique_id} asignado a tarea con target {self.target}")
+        #print(f"[BOT] Bot ID={self.unique_id} asignado a tarea con target {self.target}")
         self.path = self.astar(self.pos, self.target[0]) # usa el primer target 
-        print(f"[BOT] Bot ID={self.unique_id} con path {list(self.path.queue)}")
+        #print(f"[BOT] Bot ID={self.unique_id} con path {list(self.path.queue)}")
         self.hasTask = True
 
     def step(self):
@@ -559,61 +577,61 @@ class LGV(Agent):
         if self.charging and self.path.empty():
             self.battery += (1/720)
             self.battery += (1/15)
-            print(f"[BOT] Bot ID={self.unique_id} cargando batería. Batería actual: {self.battery}")
+            #print(f"[BOT] Bot ID={self.unique_id} cargando batería. Batería actual: {self.battery}")
             if self.battery == 90:
                 self.charging = False
-                print(f"[BOT] Bot ID={self.unique_id} batería cargada al 90%")
+                #print(f"[BOT] Bot ID={self.unique_id} batería cargada al 90%")
         elif self.pickIn:
             self.count += 1
             if self.count == 30:
                 self.pickIn = False
                 self.hasPallete = True
                 self.count = 0
-                print(f"[BOT] Bot ID={self.unique_id} recogió pallet")
+                #print(f"[BOT] Bot ID={self.unique_id} recogió pallet")
         elif self.dropOut:
             self.count += 1
             if self.count == 30:
                 self.dropOut = False
                 self.hasPallete = False
                 self.count = 0
-                print(f"[BOT] Bot ID={self.unique_id} dejó pallet")
+                #print(f"[BOT] Bot ID={self.unique_id} dejó pallet")
         elif self.pickRack:
             self.count += 1
             if self.count == 60:
                 self.pickRack = False
                 self.hasPallete = True
                 self.count = 0
-                print(f"[BOT] Bot ID={self.unique_id} recogió pallet")
+                #print(f"[BOT] Bot ID={self.unique_id} recogió pallet")
         elif self.dropRack:
             self.count += 1
             if self.count == 60:
                 self.dropRack = False
                 self.hasPallete = False
                 self.count = 0
-                print(f"[BOT] Bot ID={self.unique_id} dejó pallet")
+                #print(f"[BOT] Bot ID={self.unique_id} dejó pallet")
         else:
             self.static = False
             self.battery += 1/720
             self.battery -= 1/180
             if self.hasTask:
-                print(f"[BOT] Step del bot ID={self.unique_id} con tarea asignada y posición {self.pos}")
+                #print(f"[BOT] Step del bot ID={self.unique_id} con tarea asignada y posición {self.pos}")
 
                 # si tiene una tarea asignada, moverse a la siguiente posición
                 if not self.path.empty(): # aun le quedan pasos por dar
                     next_pos = self.path.get()
                     self.model.grid.remove_agent(self)
                     self.pos = next_pos
-                    print(f"[BOT] Bot ID={self.unique_id} avanzando a {self.pos}")
+                    #print(f"[BOT] Bot ID={self.unique_id} avanzando a {self.pos}")
                     
                     if self.path.empty() and len(self.target) > 1: # llegó al destino y aun tiene otro target
                         # checar si llegó a un rack
                         #if self.pos not in self.cords["entrada"] and self.pos not in self.cords["salida"]:
                         if self.pos == self.cords[f"entrada{self.unique_id}"]:
                             self.pickIn = True
-                            print(f"[BOT] Bot ID={self.unique_id} llegó a entrada y recogerá pallet")
+                            #print(f"[BOT] Bot ID={self.unique_id} llegó a entrada y recogerá pallet")
                         else:
                             self.pickRack = True
-                            print(f"[BOT] Bot ID={self.unique_id} llegó a rack y recoge pallet")
+                            #print(f"[BOT] Bot ID={self.unique_id} llegó a rack y recoge pallet")
 
                         self.target.pop(0)
                         self.path = self.astar(self.pos, self.target[0])
@@ -623,12 +641,12 @@ class LGV(Agent):
                         
                         if self.pos == self.cords[f"salida{self.unique_id}"]:
                             self.dropOut = True
-                            print(f"[BOT] Bot ID={self.unique_id} llegó a salida y dejará pallet")
+                            #print(f"[BOT] Bot ID={self.unique_id} llegó a salida y dejará pallet")
                         elif self.pos == self.cords[f"cargador{self.unique_id}"]:
                             print(f"[BOT] Bot ID={self.unique_id} llegó a cargador")
                         else:
                             self.dropRack = True
-                            print(f"[BOT] Bot ID={self.unique_id} llegó a rack y dejará pallet")
+                            #print(f"[BOT] Bot ID={self.unique_id} llegó a rack y dejará pallet")
                         
                         self.hasTask = False
                         self.hasPallete = False
@@ -636,7 +654,7 @@ class LGV(Agent):
                         
                     self.model.grid.move_agent(self, self.pos)
             else:
-                print(f"[BOT] Step del bot ID={self.unique_id} sin tarea")
+                #print(f"[BOT] Step del bot ID={self.unique_id} sin tarea")
                 # si no tiene una tarea asignada, esperar
                 pass
 
@@ -652,11 +670,11 @@ class LGV(Agent):
             # Find the position of 'I'
             for row_index, line in enumerate(desc):
                 col_index = line.find('I')
-                if col_index != -1:
-                    print(f"Position of 'I': Row={row_index}, Col={col_index}")
+                #if col_index != -1:
+                    #print(f"Position of 'I': Row={row_index}, Col={col_index}")
             return desc
         except Exception as e:
-            print(f"Error reading the file: {e}")
+            #print(f"Error reading the file: {e}")
             return None
 
     def read_map(self):
