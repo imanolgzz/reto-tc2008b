@@ -1,1 +1,1 @@
-Tiempo acomulado de palletes en entrada: 226 segundos
+Tiempo acomulado de palletes en entrada: 4887 segundos

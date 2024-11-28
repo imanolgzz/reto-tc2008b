@@ -28,7 +28,7 @@ class Maze(Model):
         # Get the number of bots in the environment from model_params
         self.num_bots = kwargs.get('lgvs', 0)
 
-        time = kwargs.get('time', 0) # tiempo en minutos
+        time = kwargs.get('time', 12) # tiempo en minutos
         
         self.racksid = 1
 
