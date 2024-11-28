@@ -1,9 +1,13 @@
 import mesa
 import os
 from .model import Maze, LGVManager, LGV, Rack, unusableRack, Inside, unusableInside, Outside, unusableOutside, Wall
+from mesa.visualization.modules import ChartModule
+
 
 BOT_COLORS = ["#4169E1", "#DC143C", "#228B22", "#FFD700", "#FF4500", "#8A2BE2", "#FF1493", "#00FFFF", "#FF69B4",
               "#FFA500"]
+
+COLORS = {"Bot_0": "#00AA00", "Bot_1": "#880000", "Bot_2": "#000000"}
 
 # Read the root path
 ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -45,19 +49,10 @@ grid = mesa.visualization.CanvasGrid(
 def model_params():
     params = {}
     
-    params["k"] = mesa.visualization.Slider(
-        name="k",
-        min_value=0,
-        max_value=30,
-        value=0,
-        step=1,
-        description="Racks initial occupancy",
-    )
-
     params["lgvs"] = mesa.visualization.Slider(
         name="lgvs",
         min_value=3,
-        max_value=5,
+        max_value=3,
         value=3,
         step=1,
         description="Number of LGVs",
@@ -74,6 +69,24 @@ def model_params():
 
     return params
 
+
+# battery_chart = ChartModule(
+#     [{"Label": "Average_Battery", "Color": "Blue"}],
+#     data_collector_name="datacollector"
+# )
+
+# battery_chart = ChartModule(
+#     [{"Label": label, "Color": color} for (label, color) in COLORS.items()],
+#     data_collector_name="datacollector"
+# )
+
+
+
+
+# server = mesa.visualization.ModularServer(
+#     Maze, [grid, battery_chart],
+#     "Simulacion", model_params(), 6969
+# )
 
 server = mesa.visualization.ModularServer(
     Maze, [grid],
