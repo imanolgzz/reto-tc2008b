@@ -21,6 +21,7 @@ class LGVManager(Agent):
         self.done = False
         ##print(f"[DEBUG] LGVManager inicializado con tiempo límite: {self.time} segundos")
         self.info = {}
+        self.accTime = 0
         
         self.historic_battery = []
         self.steps_without_mission = [0, 0, 0]
@@ -377,7 +378,7 @@ class LGVManager(Agent):
             self.plot_utilisation_percentage()
             self.plot_finished_task_per_flow_per_hour()
             self.done = True
-            #print("[DEBUG] Tiempo límite alcanzado. Finalizando simulación.")
+            print("[END] Tiempo acomulado de palletes en entrada:", self.accTime, "segundos")
             return
 
         self.add_tasks()
@@ -486,7 +487,7 @@ class LGVManager(Agent):
                 current_task = self.tasks.queue[0]
                 #print(f"[DEBUG] Evaluando tarea: {current_task}")
                 if current_task["task"] == "entrada-salida":
-                    bot.asign_task(target=[self.cords[f"entrada{bot.unique_id}"], self.cords[f"salida{bot.unique_id}"]])
+                    self.accTime += bot.asign_task(target=[self.cords[f"entrada{bot.unique_id}"], self.cords[f"salida{bot.unique_id}"]])
                     self.assigned_tasks[bot.unique_id] = "entrada-salida"
                     #print(f"[DEBUG] Bot {bot.unique_id} asignado a entrada-salida")
                     available_bots.remove(bot)
@@ -495,7 +496,7 @@ class LGVManager(Agent):
                     rack = self.closest_rack(self.cords[f"entrada{bot.unique_id}"])
                     if rack:
                         #print(f"[DEBUG] Bot {bot.unique_id} asignado a entrada-rack con rack ID={rack[0]}")
-                        bot.asign_task(target=[self.cords[f"entrada{bot.unique_id}"], rack[1]])
+                        self.accTime += bot.asign_task(target=[self.cords[f"entrada{bot.unique_id}"], rack[1]])
                         self.assigned_tasks[bot.unique_id] = "entrada-rack"
                         bot.currRack = rack
                         available_bots.remove(bot)
@@ -750,6 +751,8 @@ class LGV(Agent):
         self.path = self.astar(self.pos, self.target[0]) # usa el primer target 
         #print(f"[BOT] Bot ID={self.unique_id} con path {list(self.path.queue)}")
         self.hasTask = True
+
+        return self.path.qsize()-1
 
     def step(self):
         self.currStep += 1
