@@ -6,6 +6,8 @@ from .agent import LGVManager, LGV, Rack, unusableRack, Inside, unusableInside, 
 from mesa.space import SingleGrid
 from mesa.time import SimultaneousActivation
 
+from mesa.datacollection import DataCollector
+
 
 class Maze(Model):
     def __init__(self, **kwargs):
@@ -40,18 +42,33 @@ class Maze(Model):
 
         # Place agents in the environment
         self.place_agents(desc, manager)
+        
+        self.datacollector = DataCollector(
+            model_reporters={
+                "Average_Battery": lambda model: self.get_average_battery(manager),
+            },
+            agent_reporters={}
+        )
 
 
     def step(self):
+        self.datacollector.collect(self)
         self.schedule.step()
         self.running = not all(a.done for a in self.schedule.agents)
-
+        
+    def get_average_battery(self, manager: LGVManager = None):
+        if manager:
+            battery_values = list(manager.get_battery_levels().values())
+            return sum(battery_values) / len(battery_values) if battery_values else 0
+        return 0
 
     def place_agents(self, desc: list, manager: LGVManager):
         """
         Coloca los agentes en el grid basado en la descripción del laberinto.
         Ajusta el eje Y para que el archivo se grafique tal como aparece.
         """
+        salidas = 0
+        chargers = 0
         # Recorre las filas (desc), ajustando el eje Y para que sea invertido
         for y, row in enumerate(desc):
             for x, char in enumerate(row):
@@ -70,14 +87,17 @@ class Maze(Model):
                 elif char == 'O':
                     outside = Outside(int(f"10{x}{y}"), self)
                     self.grid.place_agent(outside, (x, inverted_y))
-                    manager.cords["salida"] = (x, inverted_y-1)
+                    manager.cords[f"salida{salidas}"] = (x, inverted_y-1)
+                    salidas += 1
                 elif char == 'U':
                     unusableoutside = unusableOutside(int(f"10{x}{y}"), self)
                     self.grid.place_agent(unusableoutside, (x, inverted_y))
                 elif char == 'I':
                     inside = Inside(int(f"10{x}{y}"), self)
                     self.grid.place_agent(inside, (x, inverted_y))
-                    manager.cords["entrada"] = (x+1, inverted_y)
+                    manager.cords["entrada0"] = (x, inverted_y+1)
+                    manager.cords["entrada1"] = (x+1, inverted_y)
+                    manager.cords["entrada2"] = (x, inverted_y-1)
                 elif char == 'J':
                     unusableinside = unusableInside(int(f"10{x}{y}"), self)
                     self.grid.place_agent(unusableinside, (x, inverted_y))
@@ -85,6 +105,10 @@ class Maze(Model):
                     wall = Wall(int(f"10{x}{y}"), self)
                     self.grid.place_agent(wall, (x, inverted_y))
                     # poner los bots de manera random
+                elif char == 'C':
+                    manager.cords[f"cargador{chargers}"] = (x, inverted_y-1)
+                    chargers += 1
+                    
         for i in range(self.num_bots):
             x, y = self.random.choice(list(self.grid.empties))
             bot = LGV(int(f"{i}"), self, (x, y))
