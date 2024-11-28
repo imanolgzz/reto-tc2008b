@@ -43,24 +43,43 @@ class Maze(Model):
         # Place agents in the environment
         self.place_agents(desc, manager)
         
-        self.datacollector = DataCollector(
-            model_reporters={
-                "Average_Battery": lambda model: self.get_average_battery(manager),
-            },
-            agent_reporters={}
-        )
+        # self.datacollector = DataCollector(
+        #     model_reporters={
+        #         "Average_Battery": lambda model: self.get_average_battery(manager),
+        #     },
+        #     agent_reporters={}
+        # )
+        
+        # self.datacollector = DataCollector(
+        #     model_reporters={
+        #         **{
+        #             f"Bot_{bot_id}": lambda model, bot_id=bot_id: manager.get_battery_levels().get(bot_id, 0)
+        #             for bot_id in range(self.num_bots)
+        #         }
+        #     },
+        #     agent_reporters={}
+        # )
+
+
+        
+
 
 
     def step(self):
-        self.datacollector.collect(self)
+        #self.datacollector.collect(self)
         self.schedule.step()
         self.running = not all(a.done for a in self.schedule.agents)
         
-    def get_average_battery(self, manager: LGVManager = None):
+    # def get_average_battery(self, manager: LGVManager = None):
+    #     if manager:
+    #         battery_values = list(manager.get_battery_levels().values())
+    #         return sum(battery_values) / len(battery_values) if battery_values else 0
+    #     return 0
+    
+    def get_battery_levels(self, manager: LGVManager = None):
         if manager:
-            battery_values = list(manager.get_battery_levels().values())
-            return sum(battery_values) / len(battery_values) if battery_values else 0
-        return 0
+            return manager.get_battery_levels().values() if manager.get_battery_levels() else {}
+        return {}
 
     def place_agents(self, desc: list, manager: LGVManager):
         """

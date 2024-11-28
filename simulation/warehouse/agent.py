@@ -106,15 +106,25 @@ class LGVManager(Agent):
         closest_bot = None
         closest_rack = None
         min_distance = float('inf')
+        
+        occupied_racks = [bot.currRack for bot in self.bots if bot.currRack]
 
         for bot in available_bots:
             bot_pos = bot.pos
+            
             for rack in racks_with_pallets:
-                distance = self.calc_distance(bot_pos, rack[1])
-                if distance < min_distance:
-                    min_distance = distance
-                    closest_bot = bot
-                    closest_rack = rack
+                if rack[0] not in occupied_racks:
+                    distance = self.calc_distance(bot_pos, rack[1])
+                    if distance < min_distance:
+                        min_distance = distance
+                        closest_bot = bot
+                        closest_rack = rack
+                # distance = self.calc_distance(bot_pos, rack[1])
+                # if distance < min_distance:
+                #     min_distance = distance
+                #     closest_bot = bot
+                #     closest_rack = rack
+                    
 
         #print(f"[DEBUG] Bot más cercano: Bot {closest_bot.unique_id}, Rack más cercano: {closest_rack}")
             # Actualizar el rack seleccionado en self.racks
@@ -203,7 +213,6 @@ class LGVManager(Agent):
         output_path = "simulation_results.json"
         with open(output_path, 'w') as json_file:
             json.dump(steps_data, json_file, indent=2)
-        #print(f"[DEBUG] JSON generado en {output_path}")
 
 
 
@@ -233,7 +242,7 @@ class LGVManager(Agent):
         for bot in self.bots:
             if bot.currRack:
                 #print(f"[DEBUG] Bot {bot.unique_id} con rack ID={bot.currRack[0]}")
-                if bot.pickRack:
+                if bot.pickRack and bot.count == 59:
                     for i, rack in enumerate(self.racks):
                         if rack[0] == bot.currRack[0]:
                             self.racks[i] = (rack[0], rack[1], rack[2] - 1)
@@ -241,7 +250,7 @@ class LGVManager(Agent):
                             bot.currRack = None
                             break
                     #print(f"[DEBUG] Bot {bot.unique_id} dejando pallet")
-                elif bot.dropRack:
+                elif bot.dropRack and bot.count == 59:
                     for i, rack in enumerate(self.racks):
                         if rack[0] == bot.currRack[0]:
                             self.racks[i] = (rack[0], rack[1], rack[2] + 1)
@@ -255,7 +264,7 @@ class LGVManager(Agent):
             if bot.battery < 70:
                 bot.asign_task(target=[self.cords[f"cargador{bot.unique_id}"]])
                 bot.charging = True
-                #print(f"[DEBUG] Bot {bot.unique_id} cargando batería")
+                print(f"[DEBUG URGENTE] Bot {bot.unique_id} cargando batería")
                 
                 
         
@@ -350,7 +359,7 @@ class LGVManager(Agent):
             #print(f"[DEBUG] Próximas posiciones: {next_posArr}")
             
             botToStop = None
-            otherBot = None
+            #otherBot = None
 
             duplicates = {pos for pos in next_posArr if next_posArr.count(pos) > 1}
 
@@ -551,8 +560,6 @@ class LGV(Agent):
 
         #print("[DEBUG] No se encontró camino")
         return queue.Queue()
-
-
 
 
     def getNextPos(self):
