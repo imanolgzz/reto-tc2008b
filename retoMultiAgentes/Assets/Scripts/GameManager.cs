@@ -11,14 +11,16 @@ using System;
 public class GameManager : MonoBehaviour
 {
     [SerializeField] List<GameObject> robotPrefabs;
-    [SerializeField] GameObject slider, text, camera;
+    [SerializeField] GameObject speedTest, camera;
+    public int seguir = 0;
     Slider sliderObject;
     TextMeshProUGUI textMesh;
     public List<GameObject> robots = new List<GameObject>();
-    public string jsonString;
-    public JsonData jsonObject;
+    string jsonString;
+    JsonData jsonObject;
     public int steps, robotCount;
-    float simulationSpeed = 1.0f;
+    public int simulationSpeed = 1;
+    bool isRunning = false;
     float dif = 0.5f;
     
     void Start(){
@@ -29,15 +31,8 @@ public class GameManager : MonoBehaviour
         jsonObject = JsonMapper.ToObject(jsonString);
         steps = jsonObject.Count;
         robotCount = jsonObject[0]["agents"].Count;
-        sliderObject = slider.GetComponent<Slider>();
-        textMesh = text.GetComponent<TextMeshProUGUI>();
-        sliderObject.onValueChanged.AddListener(OnSliderValueChanged);
+        textMesh = speedTest.GetComponent<TextMeshProUGUI>();
         InstantiateRobots();
-    }
-
-    void OnSliderValueChanged(float value){
-        simulationSpeed = 1f + value * 20;
-        textMesh.text = "Velocidad\n" + (Mathf.Round((simulationSpeed)*10)/10).ToString() + "x";
     }
 
     void InstantiateRobots(){
@@ -50,13 +45,49 @@ public class GameManager : MonoBehaviour
             float y = 0.3f;
             Vector3 position = new Vector3(x+dif, y, z+dif);   
             GameObject robot = Instantiate(robotPrefabs[prefab], position, Quaternion.identity);
+            robot.name = "R" + (i+1);
             robots.Add(robot);
         }
     }
 
     public void StartSimulation(){
+        if(isRunning) return;
+        isRunning = true;
         ResetRobotPositions();
         StartCoroutine(SimulateMovement());
+    }
+
+    public void setSeguir(int val){
+        seguir = val;
+    }
+
+    public void updateSpeed(){
+        if(isRunning) return;
+        switch(simulationSpeed){
+            case 1:
+                simulationSpeed = 2;
+                break;
+            case 2:
+                simulationSpeed = 5;
+                break;
+            case 5:
+                simulationSpeed = 10;
+                break;
+            case 10:
+                simulationSpeed = 20;
+                break;
+            case 20:
+                simulationSpeed = 1;
+                break;
+            default:
+                return;
+        }
+        textMesh.text = simulationSpeed + "x";
+    }
+
+    public void stopSimulation(){
+        isRunning = false;
+        ResetRobotPositions();
     }
 
     void MoveRobotToPoint(GameObject robot, Vector3 targetPosition){
@@ -92,6 +123,10 @@ public class GameManager : MonoBehaviour
 
     IEnumerator SimulateMovement(){
         for (int step = 1; step < steps; step++){
+            if(!isRunning){
+                ResetRobotPositions();
+                break;
+            }
             JsonData agents = jsonObject[step]["agents"];
             JsonData racks = jsonObject[step]["racks"];
             JsonData prevAgents = jsonObject[step-1]["agents"];
@@ -170,7 +205,7 @@ public class GameManager : MonoBehaviour
             float z = float.Parse(agents[i]["position"]["z"].ToString());
 
             float y = robots[i].transform.position.y; // Mantener la altura original
-            Vector3 initialPosition = new Vector3(x - 0.5f, y, z - 0.5f);
+            Vector3 initialPosition = new Vector3(x +dif, y, z + dif);
 
             robots[i].transform.position = initialPosition;
         }
@@ -221,36 +256,57 @@ public class GameManager : MonoBehaviour
     }
 
     void FixedUpdate(){
-        float cameraMoveSpeed = 20.0f * Time.deltaTime;
-
-        Vector3 cameraPosition = camera.transform.position;
-
-        if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)){
-            cameraPosition.y -= cameraMoveSpeed;
-            cameraPosition.z += cameraMoveSpeed;
+        float cameraMoveSpeed = 30.0f * Time.deltaTime;
+        if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift) || Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.S)){
+            seguir = 0;
         }
 
-        else if (Input.GetKey(KeyCode.Space)){
-            cameraPosition.y += cameraMoveSpeed;
-            cameraPosition.z -= cameraMoveSpeed;
-        }
+        if(seguir == 0){
+            Vector3 cameraPosition = camera.transform.position;
 
-        if (Input.GetKey(KeyCode.A)) {
-            cameraPosition.x -= cameraMoveSpeed;
-        }
+            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)){
+                cameraPosition.y -= cameraMoveSpeed;
+                cameraPosition.z += cameraMoveSpeed;
+            }
 
-        else if (Input.GetKey(KeyCode.D)){
-            cameraPosition.x += cameraMoveSpeed;
-        }
+            else if (Input.GetKey(KeyCode.Space)){
+                cameraPosition.y += cameraMoveSpeed;
+                cameraPosition.z -= cameraMoveSpeed;
+            }
 
-        if (Input.GetKey(KeyCode.W)){
-            cameraPosition.z += cameraMoveSpeed;
-        }
+            if (Input.GetKey(KeyCode.A)) {
+                cameraPosition.x -= cameraMoveSpeed;
+            }
 
-        else if (Input.GetKey(KeyCode.S)){
-            cameraPosition.z -= cameraMoveSpeed;
-        }
+            else if (Input.GetKey(KeyCode.D)){
+                cameraPosition.x += cameraMoveSpeed;
+            }
 
-        camera.transform.position = cameraPosition;
+            if (Input.GetKey(KeyCode.W)){
+                cameraPosition.z += cameraMoveSpeed;
+            }
+
+            else if (Input.GetKey(KeyCode.S)){
+                cameraPosition.z -= cameraMoveSpeed;
+            }
+
+            camera.transform.position = cameraPosition;
+        } else if(seguir == 1){
+            Vector3 cameraPosition = robots[0].transform.position;
+            cameraPosition.z -= 10;
+            cameraPosition.y += 10;
+            camera.transform.position = cameraPosition;
+        } else if(seguir == 2){
+            Vector3 cameraPosition = robots[1].transform.position;
+            cameraPosition.z -= 10;
+            cameraPosition.y += 10;
+            camera.transform.position = cameraPosition;
+        } else if(seguir == 3){
+            Vector3 cameraPosition = robots[2].transform.position;
+            cameraPosition.z -= 10;
+            cameraPosition.y += 10;
+            camera.transform.position = cameraPosition;
+
+        }
     }
 }
