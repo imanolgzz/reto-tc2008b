@@ -36,8 +36,8 @@ public class GameManager : MonoBehaviour
     }
 
     void OnSliderValueChanged(float value){
-        textMesh.text = "Velocidad\n" + (Mathf.Round((1+value)*10)/10).ToString() + "x";
-        simulationSpeed = 1f + value;
+        simulationSpeed = 1f + value * 20;
+        textMesh.text = "Velocidad\n" + (Mathf.Round((simulationSpeed)*10)/10).ToString() + "x";
     }
 
     void InstantiateRobots(){
@@ -95,6 +95,7 @@ public class GameManager : MonoBehaviour
             JsonData agents = jsonObject[step]["agents"];
             JsonData racks = jsonObject[step]["racks"];
             JsonData prevAgents = jsonObject[step-1]["agents"];
+            Debug.Log("Step: " + step);
 
             for (int i = 0; i < robotCount; i++){
                 float x = float.Parse(agents[i]["position"]["x"].ToString());
@@ -102,6 +103,13 @@ public class GameManager : MonoBehaviour
                 float ox = float.Parse(prevAgents[i]["position"]["x"].ToString());
                 float oz = float.Parse(prevAgents[i]["position"]["z"].ToString());
                 float dx = x - ox; float dz = z - oz;
+                bool hasPallet = bool.Parse(agents[i]["has_pallet"].ToString());
+                
+                if(hasPallet){
+                    robots[i].transform.Find("pallet").gameObject.SetActive(true);
+                } else {
+                    robots[i].transform.Find("pallet").gameObject.SetActive(false);
+                }
 
                 Vector3 targetPosition = new Vector3(x+dif, robots[i].transform.position.y, z+dif);
                 if(!(dx == 0 && dz == 0)){
@@ -115,7 +123,6 @@ public class GameManager : MonoBehaviour
                 float x = float.Parse(racks[i]["position"]["x"].ToString());
                 float z = float.Parse(racks[i]["position"]["z"].ToString());
                 int gifts = int.Parse(racks[i]["pallets"].ToString());
-                Debug.Log("Rack: " + i);
                 Vector3 targetPosition = new Vector3(x+dif, 2f, z+dif);
                 GameObject reference = GetObjectAt(targetPosition, 0.1f);
                 GameObject first, second, third;
