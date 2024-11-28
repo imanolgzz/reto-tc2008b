@@ -379,6 +379,9 @@ class LGVManager(Agent):
             self.plot_finished_task_per_flow_per_hour()
             self.done = True
             print("[END] Tiempo acomulado de palletes en entrada:", self.accTime, "segundos")
+            # write to file acc time
+            with open("acc_time.txt", "w") as f:
+                f.write("[END] Tiempo acomulado de palletes en entrada:", self.accTime, "segundos")
             return
 
         self.add_tasks()
